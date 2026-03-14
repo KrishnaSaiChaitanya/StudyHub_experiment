@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-const siteURL = process.env.NEXT_PUBLIC_ENVIRONMENT === "production" ? process.env.NEXT_PUBLIC_SITE_URL : "http://localhost:3000"
+const siteURL = process.env.NEXT_PUBLIC_SITE_URL
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
