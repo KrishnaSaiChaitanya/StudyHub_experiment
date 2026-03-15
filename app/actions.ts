@@ -8,9 +8,7 @@ import { redirect } from "next/navigation";
 const siteURL = process.env.NEXT_PUBLIC_SITE_URL
 
 
-export const signUpAction = async (formData: FormData) => {
-  console.log(siteURL, "site Url");
-  
+export const signUpAction = async (formData: FormData) => {  
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const full_name = formData.get("full_name")?.toString();

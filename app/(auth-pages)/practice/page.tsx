@@ -38,7 +38,6 @@ const Practice = () => {
         .select("status")
         .eq("id", session.user.id)
         .single();
-      console.log(data, "payment");
       
       if (data && data.status === "active") {
         setIsSubscribed(true);
