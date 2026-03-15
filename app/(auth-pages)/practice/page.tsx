@@ -140,8 +140,8 @@ const Practice = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-background">
-      <main className="container py-12">
+    <div className="bg-background w-full">
+      <main className="py-12">
       <section className="bg-primary py-20">
         <div className="container">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl text-center">
@@ -275,7 +275,7 @@ const Practice = () => {
                   size="lg" 
                   className="mt-6 w-full bg-accent text-accent-foreground shadow-accent hover:bg-accent/90"
                   onClick={handleSubscribe}
-                  disabled={isLoading}
+                  disabled={true}
                 >
                   <Sparkles className="mr-2 h-4 w-4" /> 
                   {isLoading ? "Processing..." : "Subscribe Now"}

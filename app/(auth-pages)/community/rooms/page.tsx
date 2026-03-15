@@ -15,7 +15,7 @@ const subjects = [
 
 const CommunityRooms = () => {
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-background">
+    <div className="min-h-[calc(100vh-4rem)] bg-black">
       <main className="container py-12">
         <div className="container">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl text-center">
@@ -27,7 +27,7 @@ const CommunityRooms = () => {
             <p className="mt-4 text-sm text-primary-foreground/50">Join subject-specific Google Meet rooms to study with peers.</p>
           </motion.div>
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-8">
           {subjects.map((subject, index) => (
             <motion.div
               key={subject.title}
