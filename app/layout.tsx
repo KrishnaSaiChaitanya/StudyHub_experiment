@@ -1,7 +1,7 @@
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import Navbar from "@/components/sections/navbar";
+import Navbar from "@/components/Navbar";
 import Footer from "@/components/sections/footer";
 import { Providers } from "@/components/providers";
 
@@ -44,8 +44,12 @@ export default function RootLayout({
         <ThemeProvider attribute="class">
           <main className="flex flex-col items-center">
               <Providers>
-               
+                <div className="w-full flex flex-col min-h-screen">
+                  <Navbar />
+                  <div className="flex-1 w-full flex flex-col">
                     {children}
+                  </div>
+                </div>
                  
                 
               </Providers>

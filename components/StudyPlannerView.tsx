@@ -146,8 +146,8 @@ const StudyPlannerView = ({ onBack }: Props) => {
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span>{planner.pages} pages</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-0.5"><Star className="h-3 w-3 fill-accent text-accent" /> {planner.rating}</span>
+                  {/* {/* <span>•</span>
+                  <span className="flex items-center gap-0.5"><Star className="h-3 w-3 fill-accent text-accent" /> {planner.rating}</span> */}
                   <span>•</span>
                   <span>{planner.downloads} downloads</span>
                 </div>

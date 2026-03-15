@@ -1,9 +1,7 @@
 "use client";
 import { useState } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import FacultyProfile from "@/components/FacultyProfile";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Star, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -20,8 +18,7 @@ const Faculty = () => {
   const [selectedFaculty, setSelectedFaculty] = useState<typeof facultyList[0] | null>(null);
 
   return (
-    <div className="w-full">
-      <Navbar />
+    <div className="min-h-[calc(100vh-4rem)] bg-background">
       {selectedFaculty ? (
         <FacultyProfile faculty={selectedFaculty} onBack={() => setSelectedFaculty(null)} />
       ) : (
@@ -63,7 +60,6 @@ const Faculty = () => {
           </section>
         </>
       )}
-      <Footer />
     </div>
   );
 };

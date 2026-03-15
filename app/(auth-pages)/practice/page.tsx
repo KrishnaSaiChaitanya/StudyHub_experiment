@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react";
-import Navbar from "@/components/Navbar";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import Footer from "@/components/Footer";
 import MockExam from "@/components/MockExam";
 import PerformanceHistory from "@/components/PerformanceHistory";
@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FileText, ClipboardCheck, Clock, Award, Lock, Crown, X, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
+
 
 const resources = [
   { icon: FileText, title: "Mock Test Papers (MTP)", count: "120+ Papers", description: "ICAI-aligned mock test papers for Foundation, Intermediate, and Final levels." },
@@ -21,12 +24,106 @@ const Practice = () => {
   const [examActive, setExamActive] = useState(false);
   const [showPerformance, setShowPerformance] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const isSubscribed = false; // UI-only flag
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("status")
+        .eq("id", session.user.id)
+        .single();
+        
+      if (data && data.status === "active") {
+        setIsSubscribed(true);
+      }
+    };
+    
+    checkSubscription();
+  }, [supabase]);
+
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      if (typeof window !== "undefined" && (window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleSubscribe = async () => {
+    try {
+      setIsLoading(true);
+      const res = await loadRazorpay();
+      
+      if (!res) {
+        toast.error("Failed to load payment gateway");
+        return;
+      }
+
+      const response = await fetch("/api/razorpay/create-subscription", {
+        method: "POST",
+      });
+      
+      const data = await response.json();
+      
+      if (!data.subscriptionId) {
+        toast.error(data.error || "Could not initialize payment");
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        subscription_id: data.subscriptionId,
+        name: "Study Hub Pro",
+        description: "Monthly Premium Subscription",
+        handler: async function (response: any) {
+          const verifyRes = await fetch("/api/razorpay/verify-subscription", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_subscription_id: response.razorpay_subscription_id,
+              razorpay_signature: response.razorpay_signature
+            }),
+          });
+          
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) {
+            toast.success("Subscription activated successfully!");
+            setIsSubscribed(true);
+            setShowPaywall(false);
+          } else {
+            toast.error(verifyData.error || "Payment verification failed");
+          }
+        },
+        theme: {
+          color: "#4f46e5",
+        },
+      };
+
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.open();
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (showPerformance) {
     return (
-      <div className="">
-        <Navbar />
+      <div className="w-full">
         <PerformanceHistory onBack={() => setShowPerformance(false)} />
         <Footer />
       </div>
@@ -35,8 +132,7 @@ const Practice = () => {
 
   if (examActive) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <div className="w-full">
         <MockExam onExit={() => setExamActive(false)} />
         <Footer />
       </div>
@@ -44,8 +140,8 @@ const Practice = () => {
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <div className="min-h-[calc(100vh-4rem)] bg-background">
+      <main className="container py-12">
       <section className="bg-primary py-20">
         <div className="container">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl text-center">
@@ -175,15 +271,22 @@ const Practice = () => {
                   ))}
                 </ul>
 
-                <Button size="lg" className="mt-6 w-full bg-accent text-accent-foreground shadow-accent hover:bg-accent/90">
-                  <Sparkles className="mr-2 h-4 w-4" /> Subscribe Now
+                <Button 
+                  size="lg" 
+                  className="mt-6 w-full bg-accent text-accent-foreground shadow-accent hover:bg-accent/90"
+                  onClick={handleSubscribe}
+                  disabled={isLoading}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" /> 
+                  {isLoading ? "Processing..." : "Subscribe Now"}
                 </Button>
-                <p className="mt-3 text-center text-xs text-muted-foreground">7-day free trial • Cancel anytime</p>
+              
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
       </section>
+      </main>
       <Footer />
     </div>
   );

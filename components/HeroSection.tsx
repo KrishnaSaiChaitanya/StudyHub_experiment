@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, Users, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const stats = [
   { icon: BookOpen, value: "500+", label: "Resources" },
@@ -53,13 +54,17 @@ const HeroSection = () => {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
           >
+            <Link href="/sign-in">
             <Button size="lg" className="bg-accent text-accent-foreground shadow-accent hover:bg-accent/90">
               Start Studying Free
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="border-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/5">
+            </Link>
+            <Link href="#feature-section">
+            <Button size="lg" variant="outline" className="border-primary-foreground/15 text-primary-foreground bg-primary-foreground/5">
               Explore Features
             </Button>
+            </Link>
           </motion.div>
         </div>
 
@@ -68,6 +73,7 @@ const HeroSection = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
           className="mx-auto mt-20 grid max-w-md grid-cols-3 gap-8"
+          
         >
           {stats.map((stat) => (
             <div key={stat.label} className="text-center">
@@ -77,6 +83,7 @@ const HeroSection = () => {
             </div>
           ))}
         </motion.div>
+        <div id="feature-section"/>
       </div>
     </section>
   );

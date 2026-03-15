@@ -1,19 +1,19 @@
 "use client"
 
 import { useState } from "react";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StudyPlannerView from "@/components/StudyPlannerView";
 import ProgressDashboardView from "@/components/ProgressDashboardView";
 import { motion } from "framer-motion";
 import { BookOpen, Timer, CalendarDays, Target, BarChart3, ClipboardList } from "lucide-react";
+import Link from "next/link";
 
 const tools = [
   { icon: BookOpen, title: "Study Planner", description: "Create personalized study plans aligned with your exam schedule.", badge: "Popular" },
   { icon: Timer, title: "Focus Timer", description: "Pomodoro-based timer with session tracking and insights." },
   { icon: Target, title: "Task Manager", description: "Break down syllabus into actionable tasks and track completion." },
   { icon: BarChart3, title: "Progress Dashboard", description: "Visualize preparation across subjects with analytics." },
-  { icon: CalendarDays, title: "Exam Calendar", description: "ICAI exam dates, registration deadlines, and reminders.", badge: "New" },
+  { icon: CalendarDays, title: "Exam Calendar", description: "ICAI exam dates, registration deadlines, and reminders.", badge: "New", path: "/events" },
   { icon: ClipboardList, title: "Notes & Bookmarks", description: "Save notes, bookmark resources, and organize materials." },
 ];
 
@@ -21,8 +21,7 @@ const Study = () => {
   const [activeView, setActiveView] = useState<string | null>(null);
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <div className="min-h-[calc(100vh-4rem)] bg-background">
       {activeView === "Study Planner" ? (
         <StudyPlannerView onBack={() => setActiveView(null)} />
       ) : activeView === "Progress Dashboard" ? (
@@ -49,6 +48,7 @@ const Study = () => {
                   onClick={() => setActiveView(tool.title)}
                   className="group cursor-pointer rounded-xl border border-border bg-card p-5 shadow-card transition-all hover:shadow-card-hover hover:border-accent/30"
                 >
+                  <Link href={tool.path ?? ""}>
                   <div className="flex items-start justify-between">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
                       <tool.icon className="h-5 w-5 text-accent" />
@@ -59,6 +59,7 @@ const Study = () => {
                   </div>
                   <h3 className="mt-4 text-sm font-semibold text-card-foreground">{tool.title}</h3>
                   <p className="mt-1.5 text-xs text-muted-foreground">{tool.description}</p>
+                  </Link>
                 </motion.div>
               ))}
             </div>
