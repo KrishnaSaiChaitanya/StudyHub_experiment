@@ -73,7 +73,6 @@ export const signInAction = async (formData: FormData) => {
 };
 export const signInWithGoogle = async (formData: FormData) => {
   const supabase = await createClient();
-  console.log("in here")
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -82,7 +81,6 @@ export const signInWithGoogle = async (formData: FormData) => {
   })
 
   if (data.url) {
-    console.log(data.url)
     redirect(data.url)
   }
 
