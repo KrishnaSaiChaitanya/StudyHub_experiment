@@ -1,48 +1,97 @@
+"use client"
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { createClient } from "@/utils/supabase/client";
 
-const sampleQuestions = [
-  { id: 1, question: "Which of the following is NOT a fundamental accounting assumption?", options: ["Going Concern", "Consistency", "Prudence", "Accrual"], correct: 2 },
-  { id: 2, question: "Under which section of the Companies Act, 2013 is the appointment of auditors governed?", options: ["Section 139", "Section 143", "Section 148", "Section 152"], correct: 0 },
-  { id: 3, question: "What is the maximum number of partners allowed in a banking firm?", options: ["10", "20", "50", "No limit"], correct: 0 },
-  { id: 4, question: "Which standard deals with 'Revenue Recognition' under Ind AS?", options: ["Ind AS 18", "Ind AS 115", "Ind AS 12", "Ind AS 37"], correct: 1 },
-  { id: 5, question: "The concept of 'Materiality' is primarily associated with which of the following?", options: ["Auditing", "Cost Accounting", "Tax Law", "Company Law"], correct: 0 },
-  { id: 6, question: "What is the due date for filing GSTR-3B for regular taxpayers?", options: ["10th of next month", "20th of next month", "25th of next month", "Last day of next month"], correct: 1 },
-  { id: 7, question: "Which of the following is a direct tax?", options: ["GST", "Custom Duty", "Income Tax", "Excise Duty"], correct: 2 },
-  { id: 8, question: "What is the threshold limit for tax audit under Section 44AB for businesses?", options: ["₹1 Crore", "₹5 Crore", "₹10 Crore", "₹2 Crore"], correct: 0 },
-  { id: 9, question: "Which committee recommended the introduction of GST in India?", options: ["Kelkar Committee", "Vijay Kelkar Committee", "Raja Chelliah Committee", "Asim Dasgupta Committee"], correct: 3 },
-  { id: 10, question: "The term 'Window Dressing' in accounting refers to:", options: ["Cleaning the office", "Manipulating financial statements", "Preparing budgets", "Tax planning"], correct: 1 },
-];
+interface Question {
+  id: string;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_answer: string;
+}
 
-const EXAM_DURATION = 30 * 60; // 30 minutes
+interface Test {
+  id: string;
+  name: string;
+}
 
 interface MockExamProps {
+  testId: string;
   onExit: () => void;
 }
 
-const MockExam = ({ onExit }: MockExamProps) => {
+const EXAM_DURATION = 30 * 60; // 30 minutes
+
+const letterMap = ['A', 'B', 'C', 'D'];
+
+const MockExam = ({ testId, onExit }: MockExamProps) => {
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION);
   const [submitted, setSubmitted] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  
+  const [test, setTest] = useState<Test | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [score, setScore] = useState(0);
+
+  const supabase = createClient();
 
   useEffect(() => {
-    if (submitted) return;
+    const fetchExamData = async () => {
+      try {
+        const { data: testData, error: testErr } = await supabase
+          .from('tests')
+          .select('*')
+          .eq('id', testId)
+          .single();
+        if (testErr) throw testErr;
+
+        const { data: qData, error: qErr } = await supabase
+          .from('questions')
+          .select('*')
+          .eq('test_id', testId)
+          .order('created_at', { ascending: true });
+        if (qErr) throw qErr;
+
+        setTest(testData);
+        setQuestions(qData || []);
+      } catch (err: any) {
+        console.error(err);
+        toast.error("Failed to load exam data.");
+        onExit();
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (testId) fetchExamData();
+  }, [testId, supabase, onExit]);
+
+  useEffect(() => {
+    if (submitted || loading || questions.length === 0) return;
     const interval = setInterval(() => {
       setTimeLeft((t) => {
-        if (t <= 1) { clearInterval(interval); setSubmitted(true); setShowResults(true); return 0; }
+        if (t <= 1) { 
+          clearInterval(interval); 
+          handleSubmit(true); // force submit on timeout
+          return 0; 
+        }
         return t - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [submitted]);
+  }, [submitted, loading, questions]);
 
   const formatTime = useCallback((s: number) => {
     const m = Math.floor(s / 60);
@@ -50,28 +99,108 @@ const MockExam = ({ onExit }: MockExamProps) => {
     return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   }, []);
 
-  const score = sampleQuestions.reduce((acc, q, i) => acc + (answers[i] === q.correct ? 1 : 0), 0);
-  const answered = Object.keys(answers).length;
-  const q = sampleQuestions[currentQ];
+  const calculateScore = () => {
+    return questions.reduce((acc, q, i) => {
+      const uA = answers[i] !== undefined ? letterMap[answers[i]] : null;
+      return acc + (uA === q.correct_answer ? 1 : 0);
+    }, 0);
+  };
 
-  const handleSubmit = () => { setSubmitted(true); setShowResults(true); };
+  const handleSubmit = async (isTimeout = false) => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const userRes = await supabase.auth.getUser();
+      const userId = userRes.data.user?.id;
+      if (!userId) {
+        toast.error("Please login to submit the exam.");
+        return;
+      }
+
+      const currentScore = calculateScore();
+      setScore(currentScore);
+
+      // Create test_attempts TODO
+      // const { data: attempt, error: attemptErr } = await supabase
+      //   .from('test_attempts')
+      //   .insert({
+      //     user_id: userId,
+      //     test_id: testId,
+      //     score: currentScore,
+      //     total_questions: questions.length
+      //   })
+      //   .select()
+      //   .single();
+      
+      // if (attemptErr) throw attemptErr;
+
+      // Create test_attempt_answers
+      // const answerRows = questions.map((q, i) => {
+      //   const uA = answers[i] !== undefined ? letterMap[answers[i]] : null;
+      //   return {
+      //     attempt_id: attempt.id,
+      //     question_id: q.id,
+      //     selected_option: uA,
+      //     is_correct: uA === q.correct_answer
+      //   };
+      // });
+
+      // const { error: ansErr } = await supabase
+      //   .from('test_attempt_answers')
+      //   .insert(answerRows);
+
+      // if (ansErr) throw ansErr;
+
+      setSubmitted(true);
+      setShowResults(true);
+      toast.success("Exam submitted successfully!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to submit exam.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-24">
+        <Loader2 className="h-10 w-10 animate-spin text-accent" />
+        <p className="mt-4 text-muted-foreground">Loading your exam...</p>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-24">
+        <p className="text-muted-foreground">No questions found for this test.</p>
+        <Button onClick={onExit} className="mt-4">Go Back</Button>
+      </div>
+    );
+  }
+
+  const answered = Object.keys(answers).length;
+  const q = questions[currentQ];
+  const qOptions = [q.option_a, q.option_b, q.option_c, q.option_d];
 
   if (submitted && showResults) {
+    const isPassing = score >= Math.ceil(questions.length * 0.4); // 40% pass
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="container max-w-2xl py-12">
         <Card className="border-border bg-card p-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
-            {score >= 7 ? <CheckCircle2 className="h-8 w-8 text-accent" /> : <XCircle className="h-8 w-8 text-destructive" />}
+            {isPassing ? <CheckCircle2 className="h-8 w-8 text-accent" /> : <XCircle className="h-8 w-8 text-destructive" />}
           </div>
           <h2 className="text-2xl font-semibold text-card-foreground">Exam Complete</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Here's how you performed</p>
+          <p className="mt-2 text-sm text-muted-foreground">Here&apos;s how you performed</p>
           <div className="mt-6 grid grid-cols-3 gap-4 text-center">
             <div className="rounded-lg bg-secondary p-4">
-              <p className="text-2xl font-bold text-accent">{score}/{sampleQuestions.length}</p>
+              <p className="text-2xl font-bold text-accent">{score}/{questions.length}</p>
               <p className="text-xs text-muted-foreground">Score</p>
             </div>
             <div className="rounded-lg bg-secondary p-4">
-              <p className="text-2xl font-bold text-card-foreground">{answered}/{sampleQuestions.length}</p>
+              <p className="text-2xl font-bold text-card-foreground">{answered}/{questions.length}</p>
               <p className="text-xs text-muted-foreground">Attempted</p>
             </div>
             <div className="rounded-lg bg-secondary p-4">
@@ -80,15 +209,22 @@ const MockExam = ({ onExit }: MockExamProps) => {
             </div>
           </div>
           <div className="mt-6 space-y-3 text-left">
-            {sampleQuestions.map((sq, i) => (
-              <div key={sq.id} className={`rounded-lg border p-3 ${answers[i] === sq.correct ? "border-accent/30 bg-accent/5" : "border-destructive/30 bg-destructive/5"}`}>
-                <p className="text-xs font-medium text-card-foreground">{i + 1}. {sq.question}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Your answer: <span className={answers[i] === sq.correct ? "text-accent" : "text-destructive"}>{answers[i] !== undefined ? sq.options[answers[i]] : "Not answered"}</span>
-                  {answers[i] !== sq.correct && <> · Correct: <span className="text-accent">{sq.options[sq.correct]}</span></>}
-                </p>
-              </div>
-            ))}
+            {questions.map((sq, i) => {
+              const uA = answers[i] !== undefined ? letterMap[answers[i]] : null;
+              const isCorrect = uA === sq.correct_answer;
+              const correctIdx = letterMap.indexOf(sq.correct_answer);
+              const opts = [sq.option_a, sq.option_b, sq.option_c, sq.option_d];
+
+              return (
+                <div key={sq.id} className={`rounded-lg border p-3 ${isCorrect ? "border-accent/30 bg-accent/5" : "border-destructive/30 bg-destructive/5"}`}>
+                  <p className="text-xs font-medium text-card-foreground">{i + 1}. {sq.question_text}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Your answer: <span className={isCorrect ? "text-accent" : "text-destructive"}>{uA ? opts[answers[i]] : "Not answered"}</span>
+                    {!isCorrect && <> &middot; Correct: <span className="text-accent">{opts[correctIdx]}</span></>}
+                  </p>
+                </div>
+              );
+            })}
           </div>
           <Button onClick={onExit} className="mt-6 bg-accent text-accent-foreground hover:bg-accent/90">Back to Practice</Button>
         </Card>
@@ -111,25 +247,25 @@ const MockExam = ({ onExit }: MockExamProps) => {
 
       {/* Progress */}
       <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-        <span>Question {currentQ + 1} of {sampleQuestions.length}</span>
+        <span>Question {currentQ + 1} of {questions.length}</span>
         <span>{answered} answered</span>
       </div>
-      <Progress value={((currentQ + 1) / sampleQuestions.length) * 100} className="mb-6 h-1.5" />
+      <Progress value={((currentQ + 1) / questions.length) * 100} className="mb-6 h-1.5" />
 
       {/* Question */}
       <AnimatePresence mode="wait">
-        <motion.div key={currentQ} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+        <motion.div key={`question-${currentQ}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
           <Card className="border-border bg-card p-6">
             <p className="text-xs font-medium text-accent">Question {currentQ + 1}</p>
-            <h3 className="mt-2 text-base font-semibold text-card-foreground leading-relaxed">{q.question}</h3>
+            <h3 className="mt-2 text-base font-semibold text-card-foreground leading-relaxed">{q.question_text}</h3>
             <RadioGroup
               className="mt-6 space-y-3"
               value={answers[currentQ]?.toString()}
               onValueChange={(v) => setAnswers({ ...answers, [currentQ]: parseInt(v) })}
             >
-              {q.options.map((opt, i) => (
+              {qOptions.map((opt, i) => (
                 <label
-                  key={i}
+                  key={`opt-${i}`}
                   className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-all ${
                     answers[currentQ] === i ? "border-accent bg-accent/5" : "border-border hover:border-muted-foreground/30"
                   }`}
@@ -145,11 +281,12 @@ const MockExam = ({ onExit }: MockExamProps) => {
 
       {/* Navigation */}
       <div className="mt-6 flex items-center justify-between">
-        <Button variant="outline" size="sm" disabled={currentQ === 0} onClick={() => setCurrentQ(currentQ - 1)} className="gap-1">
+        <Button variant="outline" size="sm" disabled={currentQ === 0 || submitting} onClick={() => setCurrentQ(currentQ - 1)} className="gap-1">
           <ChevronLeft className="h-4 w-4" /> Previous
         </Button>
-        {currentQ === sampleQuestions.length - 1 ? (
-          <Button size="sm" onClick={handleSubmit} className="bg-accent text-accent-foreground hover:bg-accent/90">
+        {currentQ === questions.length - 1 ? (
+          <Button size="sm" disabled={submitting} onClick={() => handleSubmit(false)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Submit Exam
           </Button>
         ) : (
@@ -161,9 +298,9 @@ const MockExam = ({ onExit }: MockExamProps) => {
 
       {/* Question map */}
       <div className="mt-6 flex flex-wrap gap-2">
-        {sampleQuestions.map((_, i) => (
+        {questions.map((_, i) => (
           <button
-            key={i}
+            key={`nav-${i}`}
             onClick={() => setCurrentQ(i)}
             className={`flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium transition-all ${
               i === currentQ ? "bg-accent text-accent-foreground" : answers[i] !== undefined ? "bg-accent/20 text-accent" : "bg-secondary text-muted-foreground"

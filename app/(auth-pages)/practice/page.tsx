@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
 import MockExam from "@/components/MockExam";
 import PerformanceHistory from "@/components/PerformanceHistory";
@@ -21,10 +22,9 @@ const resources = [
 ];
 
 const Practice = () => {
-  const [examActive, setExamActive] = useState(false);
-  const [showPerformance, setShowPerformance] = useState(false);
+  const router = useRouter();
   const [showPaywall, setShowPaywall] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient();
 
@@ -38,7 +38,8 @@ const Practice = () => {
         .select("status")
         .eq("id", session.user.id)
         .single();
-        
+      console.log(data, "payment");
+      
       if (data && data.status === "active") {
         setIsSubscribed(true);
       }
@@ -121,27 +122,9 @@ const Practice = () => {
     }
   };
 
-  if (showPerformance) {
-    return (
-      <div className="w-full">
-        <PerformanceHistory onBack={() => setShowPerformance(false)} />
-        <Footer />
-      </div>
-    );
-  }
-
-  if (examActive) {
-    return (
-      <div className="w-full">
-        <MockExam onExit={() => setExamActive(false)} />
-        <Footer />
-      </div>
-    );
-  }
-
   return (
     <div className="bg-background w-full">
-      <main className="py-12">
+      <main className="pb-12">
       <section className="bg-primary py-20">
         <div className="container">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl text-center">
@@ -213,8 +196,8 @@ const Practice = () => {
             <span>Instant Results</span>
           </div>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" onClick={() => isSubscribed ? setExamActive(true) : setShowPaywall(true)} className="bg-accent text-accent-foreground shadow-accent hover:bg-accent/90">Start Mock Exam</Button>
-            <Button size="lg" variant="outline" onClick={() => setShowPerformance(true)} className="border-accent/30 text-accent hover:bg-accent/10">View My Performance</Button>
+            <Button size="lg" onClick={() => isSubscribed ? router.push('/practice/mock-exams') : setShowPaywall(true)} className="bg-accent text-accent-foreground shadow-accent hover:bg-accent/90">  View Mock Exam's</Button>
+            <Button size="lg" variant="outline" onClick={() => router.push('/practice/performance')} className="border-accent/30 text-accent hover:bg-accent/10">View My Performance</Button>
           </div>
         </motion.div>
 

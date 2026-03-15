@@ -1,21 +1,59 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FacultyProfile from "@/components/FacultyProfile";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, User } from "lucide-react";
+import { Star, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/utils/supabase/client";
 
-const facultyList = [
-  { name: "CA Parveen Sharma", subject: "Accounting", rating: 4.9, students: "15K+", level: "Intermediate" },
-  { name: "CA Sanjay Khemka", subject: "Taxation", rating: 4.8, students: "12K+", level: "Final" },
-  { name: "CA Aarti Lahoti", subject: "Audit & Assurance", rating: 4.9, students: "10K+", level: "Final" },
-  { name: "CA Bhanwar Borana", subject: "Cost & Management", rating: 4.7, students: "8K+", level: "Intermediate" },
-  { name: "CA Abhishek Bansal", subject: "Law", rating: 4.8, students: "9K+", level: "Intermediate" },
-  { name: "CA Vinod Gupta", subject: "Financial Mgmt", rating: 4.9, students: "11K+", level: "Final" },
-];
+export interface FacultyDisplayData {
+  id: string;
+  name: string;
+  subject: string;
+  rating: number;
+  students: string;
+  level: string;
+}
+
+const formatNameToSubject = (subject: string | null) => {
+  if (!subject) return "Various";
+  return subject
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+const formatLevel = (level: string | null) => {
+  if (!level) return "All Levels";
+  return level.charAt(0).toUpperCase() + level.slice(1);
+};
 
 const Faculty = () => {
-  const [selectedFaculty, setSelectedFaculty] = useState<typeof facultyList[0] | null>(null);
+  const [selectedFaculty, setSelectedFaculty] = useState<FacultyDisplayData | null>(null);
+  const [facultyList, setFacultyList] = useState<FacultyDisplayData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFaculty = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.from("faculty").select("*");
+
+      if (data && !error) {
+        const formattedData: FacultyDisplayData[] = data.map((f) => ({
+          id: f.id,
+          name: f.name,
+          subject: formatNameToSubject(f.subject),
+          rating: Number(f.rating) || 4.5,
+          students: f.students_count ? `${f.students_count >= 1000 ? (f.students_count/1000).toFixed(1) + 'K' : f.students_count}+` : "New",
+          level: formatLevel(f.level),
+        }));
+        setFacultyList(formattedData);
+      }
+      setLoading(false);
+    };
+
+    fetchFaculty();
+  }, []);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background">
@@ -32,31 +70,41 @@ const Faculty = () => {
             </div>
           </section>
           <section className="container py-16">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {facultyList.map((f, i) => (
-                <motion.div
-                  key={f.name}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.06 }}
-                  className="rounded-xl border border-border bg-card p-5 shadow-card transition-all hover:shadow-card-hover hover:border-accent/30"
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                    {f.name.split(" ").slice(-1)[0][0]}
-                  </div>
-                  <h3 className="mt-3 text-sm font-semibold text-card-foreground">{f.name}</h3>
-                  <p className="text-xs text-accent">{f.subject} · {f.level}</p>
-                  <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-accent text-accent" />{f.rating}</span>
-                    <span>{f.students} students</span>
-                  </div>
-                  <Button size="sm" variant="outline" className="mt-4 w-full text-[11px]" onClick={() => setSelectedFaculty(f)}>
-                    <User className="mr-1 h-3 w-3" />Profile
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex h-40 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : facultyList.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {facultyList.map((f, i) => (
+                  <motion.div
+                    key={f.id || f.name}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.06 }}
+                    className="rounded-xl border border-border bg-card p-5 shadow-card transition-all hover:shadow-card-hover hover:border-accent/30"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                      {f.name.split(" ").slice(-1)[0][0]}
+                    </div>
+                    <h3 className="mt-3 text-sm font-semibold text-card-foreground">{f.name}</h3>
+                    <p className="text-xs text-accent">{f.subject} · {f.level}</p>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-accent text-accent" />{f.rating}</span>
+                      <span>{f.students} students</span>
+                    </div>
+                    <Button size="sm" variant="outline" className="mt-4 w-full text-[11px]" onClick={() => setSelectedFaculty(f)}>
+                      <User className="mr-1 h-3 w-3" />Profile
+                    </Button>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                <p>No faculty members found.</p>
+              </div>
+            )}
           </section>
         </>
       )}

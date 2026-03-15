@@ -36,7 +36,7 @@ const Navbar = () => {
           .from("subscriptions")
           .select("status")
           .eq("id", user.id)
-          .single();
+      .maybeSingle()
           
         setIsPro(data?.status === "active");
       } else {
@@ -53,7 +53,7 @@ const Navbar = () => {
           .from("subscriptions")
           .select("status")
           .eq("id", session.user.id)
-          .single()
+          .maybeSingle()
           .then(({ data }) => setIsPro(data?.status === "active"));
       } else {
         setIsPro(false);

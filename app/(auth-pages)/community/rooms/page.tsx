@@ -47,7 +47,7 @@ const CommunityRooms = () => {
                   Live discussion and study group for CA Intermediate {subject.title}.
                 </p>
               </div>
-              <Button asChild className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white">
+              <Button asChild className="mt-6 w-full bg-primary hover:bg-blue-700 text-white">
                 <a href={subject.meetUrl} target="_blank" rel="noopener noreferrer">
                   Join Room
                 </a>
