@@ -507,8 +507,8 @@ const ProgressDashboardView = ({ onBack }: Props) => {
                 disabled={isAddingTodo}
                 className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
               />
-              <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={addTodo} disabled={true 
-                // ?? isAddingTodo
+              <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={addTodo} disabled={ 
+                 isAddingTodo
                 }>
                 <Plus className="h-3.5 w-3.5" />
               </Button>

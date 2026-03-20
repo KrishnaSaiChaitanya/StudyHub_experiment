@@ -1,0 +1,432 @@
+"use client";
+
+import { useEffect, useState, use } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { Plus, Trash2, Loader2, RefreshCw, ChevronLeft, Pencil, Video, BookOpen, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
+import Link from "next/link";
+
+export default function FacultyDetails({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const supabase = createClient();
+  const { toast } = useToast();
+  
+  const [faculty, setFaculty] = useState<any>(null);
+  const [allUnlinkedPlanners, setAllUnlinkedPlanners] = useState<any[]>([]);
+  const [selectedPlannerToLink, setSelectedPlannerToLink] = useState("");
+  const [showLinkPlanner, setShowLinkPlanner] = useState(false);
+  
+  // Videos state
+  const [videos, setVideos] = useState<any[]>([]);
+  const [showAddVideo, setShowAddVideo] = useState(false);
+  const [videoName, setVideoName] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoDuration, setVideoDuration] = useState("");
+  const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
+
+  // Courses state
+  const [courses, setCourses] = useState<any[]>([]);
+  const [showAddCourse, setShowAddCourse] = useState(false);
+  const [courseName, setCourseName] = useState("");
+  const [courseSessions, setCourseSessions] = useState("");
+  const [courseHours, setCourseHours] = useState("");
+  const [coursePrice, setCoursePrice] = useState("");
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+
+  // Planners state
+  const [planners, setPlanners] = useState<any[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    
+    const { data: fData } = await supabase.from('faculty').select('*').eq('id', id).single();
+    if (fData) setFaculty(fData);
+
+    const [vRes, cRes, pRes, unlinkedRes] = await Promise.all([
+      supabase.from('faculty_videos').select('*').eq('faculty_id', id).order('created_at', { ascending: false }),
+      supabase.from('faculty_courses').select('*').eq('faculty_id', id).order('created_at', { ascending: false }),
+      supabase.from('study_planners').select('*').eq('faculty_id', id).order('created_at', { ascending: false }),
+      supabase.from('study_planners').select('id, title').is('faculty_id', null).order('created_at', { ascending: false })
+    ]);
+
+    if (vRes.data) setVideos(vRes.data);
+    if (cRes.data) setCourses(cRes.data);
+    if (pRes.data) setPlanners(pRes.data);
+    if (unlinkedRes.data) setAllUnlinkedPlanners(unlinkedRes.data);
+    
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [id]);
+
+  // Handle Videos
+  const handleEditVideo = (v: any) => {
+    setVideoName(v.name);
+    setVideoUrl(v.url);
+    setVideoDuration(v.duration_minutes ? v.duration_minutes.toString() : "");
+    setEditingVideoId(v.id);
+    setShowAddVideo(true);
+  };
+
+  const handleSaveVideo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    const payload = {
+      faculty_id: id,
+      name: videoName,
+      url: videoUrl,
+      duration_minutes: videoDuration ? parseInt(videoDuration) : null,
+    };
+    
+    let error;
+    if (editingVideoId) {
+      const { error: err } = await supabase.from('faculty_videos').update(payload).eq('id', editingVideoId);
+      error = err;
+    } else {
+      const { error: err } = await supabase.from('faculty_videos').insert(payload);
+      error = err;
+    }
+
+    if (error) {
+      toast({ title: "Error saving video", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Video saved securely!" });
+      setVideoName(""); setVideoUrl(""); setVideoDuration("");
+      setEditingVideoId(null);
+      setShowAddVideo(false);
+      fetchData();
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteVideo = async (vid: string) => {
+    if(!confirm("Delete this video?")) return;
+    await supabase.from('faculty_videos').delete().eq('id', vid);
+    fetchData();
+  };
+
+  // Handle Courses
+  const handleEditCourse = (c: any) => {
+    setCourseName(c.name);
+    setCourseSessions(c.sessions_count ? c.sessions_count.toString() : "");
+    setCourseHours(c.hours_count ? c.hours_count.toString() : "");
+    setCoursePrice(c.price ? c.price.toString() : "");
+    setEditingCourseId(c.id);
+    setShowAddCourse(true);
+  };
+
+  const handleSaveCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    const payload = {
+      faculty_id: id,
+      name: courseName,
+      sessions_count: courseSessions ? parseInt(courseSessions) : 0,
+      hours_count: courseHours ? parseInt(courseHours) : 0,
+      price: coursePrice ? parseFloat(coursePrice) : 0,
+    };
+    
+    let error;
+    if (editingCourseId) {
+      const { error: err } = await supabase.from('faculty_courses').update(payload).eq('id', editingCourseId);
+      error = err;
+    } else {
+      const { error: err } = await supabase.from('faculty_courses').insert(payload);
+      error = err;
+    }
+
+    if (error) {
+      toast({ title: "Error saving course", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Course saved successfully!" });
+      setCourseName(""); setCourseSessions(""); setCourseHours(""); setCoursePrice("");
+      setEditingCourseId(null);
+      setShowAddCourse(false);
+      fetchData();
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteCourse = async (cid: string) => {
+    if(!confirm("Delete this course?")) return;
+    await supabase.from('faculty_courses').delete().eq('id', cid);
+    fetchData();
+  };
+
+  // Handle Linking Planner
+  const handleLinkPlanner = async () => {
+    if (!selectedPlannerToLink) return;
+    setSaving(true);
+    const { error } = await supabase.from('study_planners').update({ faculty_id: id }).eq('id', selectedPlannerToLink);
+    if (error) {
+      toast({ title: "Error linking planner", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Planner linked successfully!" });
+      setShowLinkPlanner(false);
+      setSelectedPlannerToLink("");
+      fetchData();
+    }
+    setSaving(false);
+  };
+
+  const handleUnlinkPlanner = async (pid: string) => {
+    if(!confirm("Unlink this planner?")) return;
+    await supabase.from('study_planners').update({ faculty_id: null }).eq('id', pid);
+    fetchData();
+  };
+
+
+  if (loading) {
+    return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4 border-b border-border pb-6">
+        <Link href="/admin/faculty">
+          <Button variant="outline" size="icon"><ChevronLeft className="h-4 w-4" /></Button>
+        </Link>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">{faculty?.name || "Faculty Details"}</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Manage extensive info seamlessly.</p>
+        </div>
+        <div className="ml-auto flex gap-2">
+          <Button variant="outline" size="icon" onClick={fetchData}><RefreshCw className="h-4 w-4" /></Button>
+        </div>
+      </div>
+
+      <Tabs defaultValue="videos" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 max-w-xl">
+          <TabsTrigger value="videos" className="gap-2"><Video className="h-4 w-4" /> Videos</TabsTrigger>
+          <TabsTrigger value="courses" className="gap-2"><BookOpen className="h-4 w-4" /> Courses</TabsTrigger>
+          <TabsTrigger value="planners" className="gap-2"><FileText className="h-4 w-4" /> Planners</TabsTrigger>
+        </TabsList>
+        
+        {/* VIDEOS TAB */}
+        <TabsContent value="videos" className="mt-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Demo Videos</h2>
+            <Button onClick={() => setShowAddVideo(!showAddVideo)} className="gap-2">
+              <Plus className="h-4 w-4" /> {showAddVideo ? "Cancel" : "Add Video"}
+            </Button>
+          </div>
+          
+          {showAddVideo && (
+            <Card>
+              <CardHeader><CardTitle>{editingVideoId ? "Edit Video" : "Add New Video"}</CardTitle></CardHeader>
+              <CardContent>
+                <form onSubmit={handleSaveVideo} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Video Name</label>
+                    <Input required value={videoName} onChange={e => setVideoName(e.target.value)} placeholder="Lesson Title" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Video URL / YouTube Link</label>
+                    <Input required type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://..." />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Duration (minutes)</label>
+                    <Input type="number" required value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder="E.g. 45" />
+                  </div>
+                  <div className="col-span-full pt-2">
+                    <Button type="submit" disabled={saving}>
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Data"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Video Name</TableHead>
+                  <TableHead>URL</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead className="w-[100px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {videos.length === 0 && (
+                  <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">No videos available.</TableCell></TableRow>
+                )}
+                {videos.map(v => (
+                  <TableRow key={v.id}>
+                    <TableCell className="font-medium">{v.name}</TableCell>
+                    <TableCell><a href={v.url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate max-w-[200px] block">{v.url}</a></TableCell>
+                    <TableCell>{v.duration_minutes} mins</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => handleEditVideo(v)}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteVideo(v.id)} className="text-destructive hover:bg-destructive/10"><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        {/* COURSES TAB */}
+        <TabsContent value="courses" className="mt-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Premium Courses</h2>
+            <Button onClick={() => setShowAddCourse(!showAddCourse)} className="gap-2">
+              <Plus className="h-4 w-4" /> {showAddCourse ? "Cancel" : "Add Course"}
+            </Button>
+          </div>
+          
+          {showAddCourse && (
+            <Card>
+              <CardHeader><CardTitle>{editingCourseId ? "Edit Course" : "Add New Course"}</CardTitle></CardHeader>
+              <CardContent>
+                <form onSubmit={handleSaveCourse} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-full">
+                    <label className="text-sm font-medium">Course Name</label>
+                    <Input required value={courseName} onChange={e => setCourseName(e.target.value)} placeholder="Full Batch Course" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Sessions Count</label>
+                    <Input type="number" required value={courseSessions} onChange={e => setCourseSessions(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Total Hours</label>
+                    <Input type="number" required value={courseHours} onChange={e => setCourseHours(e.target.value)} />
+                  </div>
+                  <div className="space-y-2 md:col-span-1">
+                    <label className="text-sm font-medium">Price ($ or ₹)</label>
+                    <Input type="number" step="0.01" required value={coursePrice} onChange={e => setCoursePrice(e.target.value)} />
+                  </div>
+                  <div className="col-span-full pt-2">
+                    <Button type="submit" disabled={saving}>
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Course"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Course Name</TableHead>
+                  <TableHead>Sessions</TableHead>
+                  <TableHead>Hours</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead className="w-[100px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {courses.length === 0 && (
+                  <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No courses available.</TableCell></TableRow>
+                )}
+                {courses.map(c => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell>{c.sessions_count}</TableCell>
+                    <TableCell>{c.hours_count}h</TableCell>
+                    <TableCell>₹{c.price}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => handleEditCourse(c)}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteCourse(c.id)} className="text-destructive hover:bg-destructive/10"><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        {/* PLANNERS TAB */}
+        <TabsContent value="planners" className="mt-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Linked Study Planners</h2>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowLinkPlanner(!showLinkPlanner)} className="gap-2">
+                <Plus className="h-4 w-4" /> {showLinkPlanner ? "Cancel" : "Link Existing Planner"}
+              </Button>
+            </div>
+          </div>
+          
+          {showLinkPlanner && (
+            <Card>
+              <CardHeader><CardTitle>Link Existing Planner</CardTitle></CardHeader>
+              <CardContent>
+                <div className="flex gap-4 items-end">
+                  <div className="space-y-2 flex-1">
+                    <label className="text-sm font-medium">Select Planner (Unlinked)</label>
+                    <select 
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={selectedPlannerToLink} 
+                      onChange={e => setSelectedPlannerToLink(e.target.value)}
+                    >
+                      <option value="">Select a planner to link...</option>
+                      {allUnlinkedPlanners.map(p => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Button onClick={handleLinkPlanner} disabled={saving || !selectedPlannerToLink}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Link"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Linked Date</TableHead>
+                  <TableHead className="w-[100px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {planners.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
+                       No planners linked to this faculty.{" "}
+                       <Link href="/admin/planners" className="text-primary hover:underline">Go to Planners page to create one.</Link>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  planners.map(p => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium text-primary"><a href={p.pdf_url} target="_blank" rel="noreferrer" className="hover:underline">{p.title}</a></TableCell>
+                      <TableCell>{new Date(p.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 justify-end">
+                          <Button variant="ghost" size="sm" onClick={() => handleUnlinkPlanner(p.id)} className="text-destructive hover:bg-destructive/10">Unlink</Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+        
+      </Tabs>
+    </div>
+  );
+}

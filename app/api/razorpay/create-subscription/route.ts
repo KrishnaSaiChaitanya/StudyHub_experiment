@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 
 export async function POST(req: Request) {
   try {
+    const { plan_id: requestedPlanId } = await req.json();
     const key_id = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const plan_id = process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID;
+    const plan_id = requestedPlanId || process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID;
 
     if (!plan_id) {
       return NextResponse.json({ error: "Razorpay Plan ID not configured" }, { status: 500 });

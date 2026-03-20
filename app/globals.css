@@ -51,11 +51,11 @@
 
 @layer base {
   * {
-    @apply border-border;
+    /* @apply border-border; */
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    /* @apply bg-background text-foreground antialiased; */
     font-family: 'Poppins', sans-serif;
   }
 }
@@ -126,4 +126,28 @@
 
 .read-the-docs {
   color: #888;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(197, 20%, 95%);
+  /* border-radius: 10px; */
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(180, 2%, 18%);
+  border-radius: 10px;
+  border: 2px solid hsl(197, 20%, 95%);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(197, 100%, 40%);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: hsl(197, 100%, 35%);
 }

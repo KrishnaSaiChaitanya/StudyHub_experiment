@@ -61,7 +61,7 @@ const HeroSection = () => {
             </Button>
             </Link>
             <Link href="#feature-section">
-            <Button size="lg" variant="outline" className="border-primary-foreground/15 text-primary-foreground bg-primary-foreground/5">
+            <Button size="lg" variant="outline" className="border-primary-foreground/15 text-black bg-white">
               Explore Features
             </Button>
             </Link>

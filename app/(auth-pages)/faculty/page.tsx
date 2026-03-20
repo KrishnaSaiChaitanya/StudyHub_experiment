@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Star, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
+import Footer from "@/components/Footer";
 
 export interface FacultyDisplayData {
   id: string;
@@ -56,6 +57,7 @@ const Faculty = () => {
   }, []);
 
   return (
+    <>
     <div className="min-h-[calc(100vh-4rem)] bg-background">
       {selectedFaculty ? (
         <FacultyProfile faculty={selectedFaculty} onBack={() => setSelectedFaculty(null)} />
@@ -109,6 +111,8 @@ const Faculty = () => {
         </>
       )}
     </div>
+    <Footer/>
+    </>
   );
 };
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Plus, Trash2, Loader2, RefreshCw, ChevronLeft, ListChecks } from "lucide-react";
+import { Plus, Trash2, Loader2, RefreshCw, ChevronLeft, ListChecks, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +20,7 @@ export default function TestsDashboard() {
   const [loading, setLoading] = useState(true);
   const [showAddTest, setShowAddTest] = useState(false);
   const [savingTest, setSavingTest] = useState(false);
+  const [editingTestId, setEditingTestId] = useState<string | null>(null);
 
   // Selected test for managing questions
   const [selectedTest, setSelectedTest] = useState<any>(null);
@@ -27,6 +28,7 @@ export default function TestsDashboard() {
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [savingQuestion, setSavingQuestion] = useState(false);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
   // Form State - Test
   const [testName, setTestName] = useState("");
@@ -64,20 +66,37 @@ export default function TestsDashboard() {
     fetchTests();
   }, []);
 
+  const handleEditTest = (test: any) => {
+    setTestName(test.name);
+    setTestCategory(test.category);
+    setEditingTestId(test.id);
+    setShowAddTest(true);
+  };
+
   const handleAddTest = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingTest(true);
 
-    const { error } = await supabase.from('tests').insert({
+    const payload = {
       name: testName,
       category: testCategory,
-    });
+    };
+
+    let error;
+    if (editingTestId) {
+      const { error: updateError } = await supabase.from('tests').update(payload).eq('id', editingTestId);
+      error = updateError;
+    } else {
+      const { error: insertError } = await supabase.from('tests').insert(payload);
+      error = insertError;
+    }
 
     if (error) {
-      toast({ title: "Error adding test", description: error.message, variant: "destructive" });
+      toast({ title: `Error ${editingTestId ? 'updating' : 'adding'} test`, description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Test added!" });
+      toast({ title: `Test ${editingTestId ? 'updated' : 'added'}!` });
       setTestName(""); setTestCategory("");
+      setEditingTestId(null);
       setShowAddTest(false);
       fetchTests();
     }
@@ -90,11 +109,22 @@ export default function TestsDashboard() {
     if (!error) fetchTests();
   };
 
+  const handleEditQuestion = (question: any) => {
+    setQuestionText(question.question_text);
+    setOptionA(question.option_a);
+    setOptionB(question.option_b);
+    setOptionC(question.option_c);
+    setOptionD(question.option_d);
+    setCorrectAnswer(question.correct_answer);
+    setEditingQuestionId(question.id);
+    setShowAddQuestion(true);
+  };
+
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingQuestion(true);
 
-    const { error } = await supabase.from('questions').insert({
+    const payload = {
       test_id: selectedTest.id,
       question_text: questionText,
       option_a: optionA,
@@ -102,13 +132,23 @@ export default function TestsDashboard() {
       option_c: optionC,
       option_d: optionD,
       correct_answer: correctAnswer,
-    });
+    };
+
+    let error;
+    if (editingQuestionId) {
+      const { error: updateError } = await supabase.from('questions').update(payload).eq('id', editingQuestionId);
+      error = updateError;
+    } else {
+      const { error: insertError } = await supabase.from('questions').insert(payload);
+      error = insertError;
+    }
 
     if (error) {
-      toast({ title: "Error adding question", description: error.message, variant: "destructive" });
+      toast({ title: `Error ${editingQuestionId ? 'updating' : 'adding'} question`, description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Question added!" });
+      toast({ title: `Question ${editingQuestionId ? 'updated' : 'added'}!` });
       setQuestionText(""); setOptionA(""); setOptionB(""); setOptionC(""); setOptionD(""); setCorrectAnswer("");
+      setEditingQuestionId(null);
       setShowAddQuestion(false);
       fetchQuestions(selectedTest.id);
       fetchTests(); // Refresh question count on test list
@@ -144,7 +184,7 @@ export default function TestsDashboard() {
 
         {showAddQuestion && (
           <Card className="border-border">
-            <CardHeader><CardTitle>Add New Question</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{editingQuestionId ? "Edit Question" : "Add New Question"}</CardTitle></CardHeader>
             <CardContent>
               <form onSubmit={handleAddQuestion} className="space-y-4">
                 <div className="space-y-2">
@@ -184,7 +224,7 @@ export default function TestsDashboard() {
 
                 <div className="pt-2">
                   <Button type="submit" disabled={savingQuestion}>
-                    {savingQuestion ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Question"}
+                    {savingQuestion ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingQuestionId ? "Update Question" : "Save Question")}
                   </Button>
                 </div>
               </form>
@@ -227,9 +267,14 @@ export default function TestsDashboard() {
                     </TableCell>
                     <TableCell className="font-bold text-primary">{q.correct_answer}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteQuestion(q.id)} className="text-destructive hover:bg-destructive/10">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => handleEditQuestion(q)} className="text-muted-foreground hover:text-primary">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteQuestion(q.id)} className="text-destructive hover:bg-destructive/10">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -258,7 +303,7 @@ export default function TestsDashboard() {
 
       {showAddTest && (
         <Card className="border-border">
-          <CardHeader><CardTitle>Add New Mock Test</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{editingTestId ? "Edit Mock Test" : "Add New Mock Test"}</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={handleAddTest} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -279,7 +324,7 @@ export default function TestsDashboard() {
 
               <div className="col-span-full pt-2">
                 <Button type="submit" disabled={savingTest}>
-                  {savingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Test"}
+                  {savingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingTestId ? "Update Test" : "Save Test")}
                 </Button>
               </div>
             </form>
@@ -316,8 +361,11 @@ export default function TestsDashboard() {
                         <Button variant="outline" size="sm" onClick={() => { setSelectedTest(t); fetchQuestions(t.id); }} className="gap-2">
                             <ListChecks className="h-4 w-4" /> Manage
                         </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleEditTest(t)} className="text-muted-foreground hover:text-primary">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteTest(t.id)} className="text-destructive hover:bg-destructive/10">
-                        <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
                   </TableCell>

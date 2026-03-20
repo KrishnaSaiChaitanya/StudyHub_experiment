@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={geistSans.className} suppressHydrationWarning>
       <body>
-        <ThemeProvider attribute="class">
+       
           <main className="flex flex-col items-center">
               <Providers>
                 <div className="w-full flex flex-col min-h-screen">
@@ -54,7 +54,7 @@ export default function RootLayout({
                 
               </Providers>
           </main>
-        </ThemeProvider>
+        
       </body>
     </html>
   );

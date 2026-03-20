@@ -9,6 +9,7 @@ export async function POST(req: Request) {
       razorpay_payment_id,
       razorpay_subscription_id,
       razorpay_signature,
+      plan_id: requestedPlanId,
     } = body;
 
     const supabase = await createClient();
@@ -33,12 +34,14 @@ export async function POST(req: Request) {
       );
     }
 
+    const plan_id = requestedPlanId || process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID;
+
     // Signature is valid, update Supabase
     const { error } = await supabase.from("subscriptions").upsert({
       id: user.id,
       razorpay_subscription_id,
       status: "active",
-      plan_id: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID,
+      plan_id: plan_id,
       updated_at: new Date().toISOString(),
     });
 

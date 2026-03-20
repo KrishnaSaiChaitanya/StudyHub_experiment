@@ -121,35 +121,35 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
       setScore(currentScore);
 
       // Create test_attempts TODO
-      // const { data: attempt, error: attemptErr } = await supabase
-      //   .from('test_attempts')
-      //   .insert({
-      //     user_id: userId,
-      //     test_id: testId,
-      //     score: currentScore,
-      //     total_questions: questions.length
-      //   })
-      //   .select()
-      //   .single();
+      const { data: attempt, error: attemptErr } = await supabase
+        .from('test_attempts')
+        .insert({
+          user_id: userId,
+          test_id: testId,
+          score: currentScore,
+          total_questions: questions.length
+        })
+        .select()
+        .single();
       
-      // if (attemptErr) throw attemptErr;
+      if (attemptErr) throw attemptErr;
 
       // Create test_attempt_answers
-      // const answerRows = questions.map((q, i) => {
-      //   const uA = answers[i] !== undefined ? letterMap[answers[i]] : null;
-      //   return {
-      //     attempt_id: attempt.id,
-      //     question_id: q.id,
-      //     selected_option: uA,
-      //     is_correct: uA === q.correct_answer
-      //   };
-      // });
+      const answerRows = questions.map((q, i) => {
+        const uA = answers[i] !== undefined ? letterMap[answers[i]] : null;
+        return {
+          attempt_id: attempt.id,
+          question_id: q.id,
+          selected_option: uA,
+          is_correct: uA === q.correct_answer
+        };
+      });
 
-      // const { error: ansErr } = await supabase
-      //   .from('test_attempt_answers')
-      //   .insert(answerRows);
+      const { error: ansErr } = await supabase
+        .from('test_attempt_answers')
+        .insert(answerRows);
 
-      // if (ansErr) throw ansErr;
+      if (ansErr) throw ansErr;
 
       setSubmitted(true);
       setShowResults(true);

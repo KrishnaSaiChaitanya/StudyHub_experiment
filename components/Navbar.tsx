@@ -6,8 +6,13 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Menu, X, User, LogOut, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/utils/supabase/client";
 import { signOutAction } from "@/app/actions";
+import { LogoElement } from "@/assets/logo";
 
 const navItems = [
   { label: "Home", path: "/" },
@@ -15,6 +20,7 @@ const navItems = [
   { label: "Practice", path: "/practice" },
   { label: "Faculty", path: "/faculty" },
   { label: "Community", path: "/community" },
+  {label:"Pricing", path:"/pricing"}
 ];
 
 const authRoutes = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
@@ -24,6 +30,12 @@ const Navbar = () => {
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [isPro, setIsPro] = useState(false);
+  
+  const [profile, setProfile] = useState<any>(null);
+  const [editName, setEditName] = useState("");
+  const [editStudentType, setEditStudentType] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  
   const supabase = createClient();
 
   useEffect(() => {
@@ -32,61 +44,168 @@ const Navbar = () => {
       setUser(user);
       
       if (user) {
-        const { data } = await supabase
-          .from("subscriptions")
-          .select("status")
-          .eq("id", user.id)
-      .maybeSingle()
-          
-        setIsPro(data?.status === "active");
+        setEditName(user.user_metadata?.full_name || "");
+        const [subRes, profRes] = await Promise.all([
+          supabase.from("subscriptions").select("status").eq("id", user.id).maybeSingle(),
+          supabase.from("profiles").select("student_type").eq("id", user.id).maybeSingle()
+        ]);
+        
+        setIsPro(subRes.data?.status === "active");
+        setProfile(profRes.data);
+        if (profRes.data?.student_type) {
+          setEditStudentType(profRes.data.student_type);
+        }
       } else {
         setIsPro(false);
+        setProfile(null);
       }
     };
 
     fetchUserAndSub();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        supabase
-          .from("subscriptions")
-          .select("status")
-          .eq("id", session.user.id)
-          .maybeSingle()
-          .then(({ data }) => setIsPro(data?.status === "active"));
+        setEditName(session.user.user_metadata?.full_name || "");
+        const [subRes, profRes] = await Promise.all([
+          supabase.from("subscriptions").select("status").eq("id", session.user.id).maybeSingle(),
+          supabase.from("profiles").select("student_type").eq("id", session.user.id).maybeSingle()
+        ]);
+        setIsPro(subRes.data?.status === "active");
+        setProfile(profRes.data);
+        if (profRes.data?.student_type) {
+          setEditStudentType(profRes.data.student_type);
+        }
       } else {
         setIsPro(false);
+        setProfile(null);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [supabase.auth, supabase]);
 
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    
+    try {
+      if (editName !== user.user_metadata?.full_name) {
+        const { data } = await supabase.auth.updateUser({
+          data: { full_name: editName }
+        });
+        if (data?.user) {
+          setUser(data.user);
+        }
+      }
+
+      if (editStudentType && editStudentType !== profile?.student_type) {
+        await supabase
+          .from("profiles")
+          .update({ student_type: editStudentType })
+          .eq("id", user.id);
+        
+        setProfile((prev: any) => ({ ...prev, student_type: editStudentType }));
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const renderUserPopover = (mobile = false) => (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className={`flex items-center gap-2 text-sm font-medium text-foreground bg-secondary/50 hover:bg-secondary/70 transition-colors border border-border ${
+          mobile ? "px-3 py-2 rounded-lg w-full text-left" : "px-3 py-1.5 rounded-full"
+        }`}>
+          <User className="h-4 w-4 text-accent shrink-0" />
+          <span className="truncate flex-1 text-left">
+            {user?.user_metadata?.full_name || user?.email || "User"}
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-4" sideOffset={8}>
+        <div className="grid gap-4">
+          <div className="space-y-2">
+            <h4 className="font-medium leading-none">Profile Settings</h4>
+            <p className="text-sm text-muted-foreground">
+              Update your details and view your plan.
+            </p>
+          </div>
+          <div className="grid gap-3">
+            <div className="grid grid-cols-3 items-center gap-4 text-sm mt-2">
+              <Label htmlFor={`name-${mobile ? 'mobile' : 'desktop'}`}>Name</Label>
+              <Input
+                id={`name-${mobile ? 'mobile' : 'desktop'}`}
+                value={editName}
+                className="col-span-2 h-8"
+                onChange={(e) => setEditName(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-3 items-center gap-4 text-sm">
+              <Label htmlFor={`level-${mobile ? 'mobile' : 'desktop'}`}>Level</Label>
+              <div className="col-span-2">
+                <Select value={editStudentType} onValueChange={setEditStudentType}>
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="foundation">Foundation</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="final">Final</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button size="sm" onClick={handleSaveProfile} disabled={isSaving} className="mt-2 w-full">
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+          
+          <div className="border-t border-border pt-4">
+            <h4 className="font-medium leading-none text-sm mb-3">Current Plan</h4>
+            {isPro ? (
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Pro Plan Active</span>
+                <Crown className="h-4 w-4 text-accent" />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 mt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Free Plan</span>
+                </div>
+                <Link href="/pricing" className="w-full text-foreground hover:text-foreground">
+                  <Button size="sm" className="w-full bg-accent text-accent-foreground hover:bg-accent/90 border-transparent transition-all">
+                    Upgrade to Pro <Crown className="ml-2 h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+
   if (authRoutes.includes(pathname)) {
     return null;
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 border-b border-border backdrop-blur-xl bg-white">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
-            <span className="text-sm font-bold text-accent-foreground">CA</span>
-          </div>
-          <span className="text-lg font-semibold tracking-tight text-foreground">
-            Study Hub
-          </span>
+        <Link href="/" className="flex items-center gap-2.5 h-16 w-16">
+          <LogoElement />
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
-          {navItems.map((item) => {
+          {navItems.filter((i) => i.path === "/pricing" ? !isPro : true).map((item) => {
             const isActive = pathname === item.path;
             return (
               <Link
                 key={item.path}
                 href={item.path}
-                className="relative px-4 py-2 text-sm font-medium transition-colors"
+                className="relative px-4 py-2 text-sm font-semibold transition-colors"
               >
                 <span className={isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}>
                   {item.label}
@@ -103,7 +222,7 @@ const Navbar = () => {
           })}
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 md:flex !font-semibold">
           {user ? (
             <>
               {isPro && (
@@ -112,14 +231,9 @@ const Navbar = () => {
                   PRO
                 </div>
               )}
-              <div className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground bg-secondary/50 rounded-full border border-border">
-                <User className="h-4 w-4 text-accent" />
-                <span className="max-w-[120px] truncate">
-                  {user.user_metadata?.full_name || user.email || "User"}
-                </span>
-              </div>
+              {renderUserPopover(false)}
               <form action={signOutAction}>
-                <Button variant="ghost" size="sm" type="submit" className="text-muted-foreground hover:text-destructive">
+                <Button variant="ghost" size="sm" type="submit" className="text-muted-foreground hover:text-white">
                   <LogOut className="h-4 w-4 mr-2" />
                   Log out
                 </Button>
@@ -128,10 +242,10 @@ const Navbar = () => {
           ) : (
             <>
               <Link href="/sign-in">
-                <Button variant="ghost" size="sm" className="text-muted-foreground">Log in</Button>
+                <Button variant="ghost" size="sm" className="text-muted-foreground !font-semibold">Log in</Button>
               </Link>
               <Link href="/sign-in">
-                <Button size="sm" className="bg-accent text-accent-foreground shadow-accent hover:bg-accent/90">
+                <Button size="sm" className="bg-accent text-accent-foreground shadow-accent hover:bg-accent/90 !font-semibold">
                   Get Started
                 </Button>
               </Link>
@@ -171,12 +285,7 @@ const Navbar = () => {
                 </div>
               )}
               <div className={`${isPro ? 'mt-2' : 'mt-4'} mb-2 flex flex-col gap-2`}>
-                <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground bg-secondary/50 rounded-lg border border-border">
-                  <User className="h-4 w-4 text-accent" />
-                  <span className="truncate">
-                    {user.user_metadata?.full_name || user.email || "User"}
-                  </span>
-                </div>
+                {renderUserPopover(true)}
                 <form action={signOutAction}>
                   <Button variant="ghost" size="sm" type="submit" className="w-full justify-start text-muted-foreground hover:text-destructive">
                     <LogOut className="h-4 w-4 mr-2" />

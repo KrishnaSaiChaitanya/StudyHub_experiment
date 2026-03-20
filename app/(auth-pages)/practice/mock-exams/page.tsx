@@ -58,8 +58,9 @@ export default function MockExamsPage() {
   };
 
   return (
+    <>
     <div className="min-h-[calc(100vh-4rem)] bg-background w-full flex flex-col">
-      <main className="flex-1 py-12">
+      <main className="flex-1 pb-12">
         <section className="bg-primary py-20 relative overflow-hidden">
           {/* Background decorations */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
@@ -209,5 +210,7 @@ export default function MockExamsPage() {
         </section>
       </main>
     </div>
+    <Footer/>
+    </>
   );
 }
