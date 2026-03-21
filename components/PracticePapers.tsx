@@ -31,8 +31,8 @@ const PaperBrowser = ({ title, subtitle, papers, accentLabel }: PaperBrowserProp
   const [levelFilter, setLevelFilter] = useState("all");
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
 
-  const subjects = useMemo(() => [...new Set(papers.map((p) => p.subject))], [papers]);
-  const levels = useMemo(() => [...new Set(papers.map((p) => p.level))], [papers]);
+const subjects = useMemo(() => Array.from(new Set(papers.map((p) => p.subject))), [papers]);
+const levels = useMemo(() => Array.from(new Set(papers.map((p) => p.level))), [papers]);
 
   const filtered = useMemo(() => {
     return papers.filter((p) => {
