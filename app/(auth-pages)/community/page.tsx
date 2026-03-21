@@ -12,6 +12,8 @@ const sections = [
   { icon: TrendingUp, title: "Leaderboard", description: "Compete on mock tests, study streaks, and community contributions.", cta: "Coming Soon", disabled: true },
 ];
 
+import { ProFeatureLock } from "@/components/ProFeatureLock";
+
 const Community = () => (
   <div className="min-h-[calc(100vh-4rem)] bg-background">
     <section className="bg-primary py-20">
@@ -24,32 +26,47 @@ const Community = () => (
     </section>
     <main>
       <section className="container py-16">
-        <div className="grid gap-4 md:grid-cols-2">
-          {sections.map((s, i) => (
-            <motion.div
-              key={s.title}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
-              className="rounded-xl border border-border bg-card p-6 shadow-card"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                <s.icon className="h-5 w-5 text-accent" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+          {sections.map((s, i) => {
+            const isPro = s.title === "Group Study Sessions";
+            const CardContent = (
+              <div className="p-6 flex flex-col h-full">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                  <s.icon className="h-5 w-5 text-accent" />
+                </div>
+                <h3 className="mt-4 text-base font-semibold text-card-foreground">{s.title}</h3>
+                <p className="mt-1.5 text-xs text-muted-foreground flex-1">{s.description}</p>
+                {s.disabled ? (
+                  <Button size="sm" className="mt-5 bg-accent text-accent-foreground opacity-50 cursor-not-allowed" disabled>
+                    {s.cta}
+                  </Button>
+                ) : (
+                  <Button size="sm" className="mt-5 bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+                    <Link href={s.href!}>{s.cta}</Link>
+                  </Button>
+                )}
               </div>
-              <h3 className="mt-4 text-base font-semibold text-card-foreground">{s.title}</h3>
-              <p className="mt-1.5 text-xs text-muted-foreground">{s.description}</p>
-              {s.disabled ? (
-                <Button size="sm" className="mt-5 bg-accent text-accent-foreground opacity-50 cursor-not-allowed">
-                  {s.cta}
-                </Button>
-              ) : (
-                <Button size="sm" className="mt-5 bg-accent text-accent-foreground hover:bg-accent/90" asChild>
-                  <Link href={s.href!}>{s.cta}</Link>
-                </Button>
-              )}
-            </motion.div>
-          ))}
+            );
+
+            return (
+              <motion.div
+                key={s.title}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08 }}
+                className="rounded-xl border border-border bg-card shadow-card"
+              >
+                {isPro ? (
+                  <ProFeatureLock label="Unlock Group study sessions with Pro subscription">
+                    {CardContent}
+                  </ProFeatureLock>
+                ) : (
+                  CardContent
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       </section>
     </main>

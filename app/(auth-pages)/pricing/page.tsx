@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
+import { useSubscription } from "@/components/SubscriptionProvider";
 
 const freeFeatures = [
   "MTP, RTP & PYQ Access",
@@ -78,6 +79,7 @@ const Pricing = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const supabase = createClient();
+  const { checkSubscription } = useSubscription();
 
   const loadRazorpay = () => {
     return new Promise((resolve) => {
@@ -148,6 +150,7 @@ const Pricing = () => {
           
           const verifyData = await verifyRes.json();
           if (verifyData.success) {
+            await checkSubscription();
             setIsSuccess(true);
             toast.success("Subscription activated successfully!");
             setTimeout(() => {

@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Play, Pause, RotateCcw, Flame, Clock, CalendarDays,
-  BookOpen, Plus, Check, Filter, Trash2, Save, Loader2
+  BookOpen, Plus, Check, Filter, Trash2, Save, Loader2,
+  Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
@@ -12,6 +13,8 @@ import { SubjectCategory } from "@/utils/supabase/types";
 import { useToast } from "@/components/ui/use-toast";
 import { useStudent } from "./StudentTypeProvider";
 import { formatSubjectName } from "@/utils/subjects";
+import { ProFeatureLock } from "@/components/ProFeatureLock";
+import { useSubscription } from "@/components/SubscriptionProvider";
 
 const SUBJECT_COLORS = [
   "hsl(197 100% 50%)",
@@ -90,6 +93,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
   const supabase = createClient();
   const { toast } = useToast();
   const { subjects, loading: studentLoading } = useStudent();
+  const { isSubscribed } = useSubscription()
   
   const dynamicSubjects = useMemo(() => {
     return subjects.map((subj, idx) => ({
@@ -260,7 +264,8 @@ const ProgressDashboardView = ({ onBack }: Props) => {
   const totalHours = dailyData.reduce((s, d) => s + d.hours, 0);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-background text-foreground">
+   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-background text-foreground">
+      {/* HEADER SECTION */}
       <div className="border-b border-border bg-card">
         <div className="container flex items-center gap-3 py-4">
           <Button variant="ghost" size="icon" onClick={onBack} className="text-muted-foreground hover:text-foreground">
@@ -275,120 +280,104 @@ const ProgressDashboardView = ({ onBack }: Props) => {
 
       <div className="container py-6">
         <div className="grid gap-5 lg:grid-cols-[280px_1fr_300px]">
-          {/* LEFT COLUMN */}
+          
+          {/* LEFT COLUMN: Summary & Stats */}
           <div className="space-y-5">
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border border-border bg-card p-5 shadow-sm"
-            >
-              <h2 className="text-sm font-semibold mb-4">Daily Summary</h2>
-              <PieChart dailyData={dailyData} totalHours={totalHours} getSubjectColor={getSubjectColor} />
-              <div className="mt-4 space-y-2">
-                {dailyData.map((item) => (
-                  <div key={item.category} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: getSubjectColor(item.category) }}
-                      />
-                      <span className="text-muted-foreground">{getSubjectLabel(item.category)}</span>
-                    </div>
-                    <span className="font-medium text-card-foreground">{item.hours.toFixed(1)}h</span>
+            {/* Daily Summary Card */}
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+              <div className="p-5 pb-0 flex items-center justify-between">
+                <h2 className="text-sm font-semibold">Daily Summary</h2>
+                {!isSubscribed && <Lock className="h-3 w-3 text-muted-foreground/50" />}
+              </div>
+              <ProFeatureLock label="Unlock daily summary with a Pro Subscription">
+                <div className="p-5 pt-4">
+                  <PieChart dailyData={dailyData} totalHours={totalHours} getSubjectColor={getSubjectColor} />
+                  <div className="mt-4 space-y-2">
+                    {dailyData.map((item) => (
+                      <div key={item.category} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: getSubjectColor(item.category) }} />
+                          <span className="text-muted-foreground">{getSubjectLabel(item.category)}</span>
+                        </div>
+                        <span className="font-medium text-card-foreground">{item.hours.toFixed(1)}h</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                {dailyData.length === 0 && (
-                  <div className="text-xs text-muted-foreground text-center py-2">No sessions today. Start studying!</div>
-                )}
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 }}
-              className="rounded-xl border border-border bg-card p-5 shadow-sm"
-            >
-              <h2 className="text-sm font-semibold mb-4">Statistics</h2>
-
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10">
-                  <Flame className="h-4.5 w-4.5 text-accent" />
                 </div>
-                <div>
-                  <p className="text-lg font-bold">{streak} Days</p>
-                  <p className="text-[10px] text-muted-foreground">Current Streak</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                {[
-                  { icon: BookOpen, label: "Total Sessions", value: totalSessionsCount.toString() },
-                  { icon: Clock, label: "Hours Today", value: totalHours.toFixed(1) },
-                ].map((stat) => (
-                  <div key={stat.label} className="rounded-lg bg-secondary p-3 text-center">
-                    <stat.icon className="mx-auto h-4 w-4 text-accent mb-1" />
-                    <p className="text-sm font-bold text-card-foreground">{stat.value}</p>
-                    <p className="text-[9px] text-muted-foreground">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-
-          {/* MIDDLE COLUMN */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.12 }}
-            className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col items-center"
-          >
-            <h2 className="text-sm font-semibold mb-5 self-start">Study Timer</h2>
-
-            <div className="flex flex-wrap gap-2 mb-8 justify-center">
-              {dynamicSubjects.map((s) => (
-                <button
-                  key={s.value}
-                  onClick={() => {
-                    setActiveSubject(s.value);
-                    if (!running) setSeconds(0);
-                  }}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                    activeSubject === s.value
-                      ? "text-primary-foreground shadow-sm"
-                      : "bg-secondary text-muted-foreground hover:text-foreground"
-                  }`}
-                  style={activeSubject === s.value ? { backgroundColor: s.color } : {}}
-                >
-                  {s.label}
-                </button>
-              ))}
+              </ProFeatureLock>
             </div>
 
-            <div className="flex flex-col items-center flex-1 w-full max-w-sm">
-              <div className="relative mb-8">
-                <svg width="220" height="220" viewBox="0 0 220 220">
-                  <circle cx="110" cy="110" r="95" fill="none" className="stroke-secondary" strokeWidth="6" />
-                  <motion.circle
-                    cx="110"
-                    cy="110"
-                    r="95"
-                    fill="none"
-                    stroke={getSubjectColor(activeSubject)}
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 95}
-                    strokeDashoffset={-(2 * Math.PI * 95 * ((Math.min(seconds, 3600) / 3600)))}
-                    style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <p className="text-3xl font-mono font-bold tracking-wider">
-                    {formatTime(seconds)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 truncate max-w-[150px]">{getSubjectLabel(activeSubject)}</p>
-                </div>
+            {/* Statistics Card */}
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+              <div className="p-5 pb-0 flex items-center justify-between">
+                <h2 className="text-sm font-semibold">Statistics</h2>
+                {!isSubscribed && <span className="text-[10px] font-bold text-accent">PRO</span>}
               </div>
+              <ProFeatureLock label="Unlock statistics with a Pro Subscription">
+                <div className="p-5 pt-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10">
+                      <Flame className="h-4.5 w-4.5 text-accent" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold">{streak} Days</p>
+                      <p className="text-[10px] text-muted-foreground">Current Streak</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-secondary/50 p-3 text-center">
+                      <BookOpen className="mx-auto h-4 w-4 text-accent mb-1" />
+                      <p className="text-sm font-bold">{totalSessionsCount}</p>
+                      <p className="text-[9px] text-muted-foreground">Total Sessions</p>
+                    </div>
+                    <div className="rounded-lg bg-secondary/50 p-3 text-center">
+                      <Clock className="mx-auto h-4 w-4 text-accent mb-1" />
+                      <p className="text-sm font-bold">{totalHours.toFixed(1)}</p>
+                      <p className="text-[9px] text-muted-foreground">Hours Today</p>
+                    </div>
+                  </div>
+                </div>
+              </ProFeatureLock>
+            </div>
+          </div>
+
+          {/* MIDDLE COLUMN: Study Timer */}
+          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+            <div className="p-6 pb-0">
+               <h2 className="text-sm font-semibold">Study Timer</h2>
+            </div>
+            <ProFeatureLock label="Unlock Study timer with Pro Subscription">
+              <div className="p-6 flex flex-col items-center">
+                <div className="flex flex-wrap gap-2 mb-8 justify-center">
+                  {dynamicSubjects.map((s) => (
+                    <button
+                      key={s.value}
+                      onClick={() => { setActiveSubject(s.value); if (!running) setSeconds(0); }}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                        activeSubject === s.value ? "text-white shadow-sm" : "bg-secondary text-muted-foreground"
+                      }`}
+                      style={activeSubject === s.value ? { backgroundColor: s.color } : {}}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative mb-8">
+                  <svg width="200" height="200" viewBox="0 0 220 220">
+                    <circle cx="110" cy="110" r="95" fill="none" className="stroke-secondary" strokeWidth="6" />
+                    <motion.circle
+                      cx="110" cy="110" r="95" fill="none" stroke={getSubjectColor(activeSubject)}
+                      strokeWidth="6" strokeLinecap="round" strokeDasharray={2 * Math.PI * 95}
+                      strokeDashoffset={-(2 * Math.PI * 95 * ((Math.min(seconds, 3600) / 3600)))}
+                      style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <p className="text-3xl font-mono font-bold">{formatTime(seconds)}</p>
+                    <p className="text-xs text-muted-foreground mt-1 truncate max-w-[120px]">{getSubjectLabel(activeSubject)}</p>
+                  </div>
+                </div>
 
               <div className="flex items-center gap-4">
                 <Button
@@ -454,22 +443,15 @@ const ProgressDashboardView = ({ onBack }: Props) => {
                   )}
                 </div>
               </div>
-            </div>
-          </motion.div>
+              </div>
+            </ProFeatureLock>
+          </div>
 
-          {/* RIGHT COLUMN */}
-          <motion.div
-             initial={{ opacity: 0, y: 12 }}
-             animate={{ opacity: 1, y: 0 }}
-             transition={{ delay: 0.16 }}
-             className="rounded-xl border border-border bg-card p-5 shadow-sm flex flex-col h-[700px] max-h-[calc(100vh-10rem)]"
-          >
+          {/* RIGHT COLUMN: To-Do List (Un-Locked by default) */}
+          <motion.div className="rounded-xl border border-border bg-card p-5 shadow-sm flex flex-col h-[700px]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold">To-Do List</h2>
-              <div className="flex items-center gap-1">
-                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-[10px] text-muted-foreground">{filteredTodos.length} tasks</span>
-              </div>
+              <span className="text-[10px] text-muted-foreground">{filteredTodos.length} tasks</span>
             </div>
 
             <div className="flex flex-wrap gap-1.5 mb-4 max-h-24 overflow-y-auto shrink-0">
@@ -567,6 +549,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
               </AnimatePresence>
             </div>
           </motion.div>
+
         </div>
       </div>
     </motion.div>

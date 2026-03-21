@@ -1,4 +1,5 @@
 import { StudentTypeProvider } from "@/components/StudentTypeProvider";
+import { SubscriptionProvider } from "@/components/SubscriptionProvider";
 
 export default async function Layout({
   children,
@@ -6,8 +7,10 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <StudentTypeProvider>
-      {children}
-    </StudentTypeProvider>
+    <SubscriptionProvider>
+      <StudentTypeProvider>
+        {children}
+      </StudentTypeProvider>
+    </SubscriptionProvider>
   );
 }

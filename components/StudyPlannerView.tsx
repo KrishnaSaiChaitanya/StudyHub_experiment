@@ -239,7 +239,7 @@ const StudyPlannerView = ({ onBack }: Props) => {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-4 flex items-center gap-2 pt-2 border-t border-border mt-auto">
+                  <div className="mt-4 flex items-center gap-2 pt-4  border-border mt-auto">
                     <Button size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => window.open(planner.pdf_url, '_blank')}>
                       <Download className="h-3.5 w-3.5" /> Download
                     </Button>

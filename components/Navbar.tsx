@@ -200,7 +200,7 @@ const Navbar = () => {
 
         <div className="hidden items-center gap-1 md:flex">
           {navItems.filter((i) => i.path === "/pricing" ? !isPro : true).map((item) => {
-            const isActive = pathname === item.path;
+            const isActive = item.path === "/" ? pathname === "/" || pathname === "/dashboard" :pathname === item.path;
             return (
               <Link
                 key={item.path}

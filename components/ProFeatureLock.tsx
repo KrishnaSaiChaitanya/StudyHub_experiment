@@ -1,0 +1,52 @@
+"use client";
+
+import { Badge, Crown, Lock, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useSubscription } from "./SubscriptionProvider";
+import { ReactNode } from "react";
+import { motion } from "framer-motion";
+
+export const ProFeatureLock = ({ children, label }: { children: ReactNode, label?: string }) => {
+  const { isSubscribed, isLoading } = useSubscription();
+  const router = useRouter();
+
+  if (isLoading) return <div className="w-full h-full min-h-[100px] animate-pulse bg-muted/10 rounded-[inherit]" />;
+  if (isSubscribed) return <>{children}</>;
+
+  return (
+    <div className="relative w-full h-full min-h-[200px] flex items-center justify-center overflow-hidden rounded-[inherit] ">
+      <div className="absolute rounded-lg inset-0 z-0 opacity-[0.25] pointer-events-none blur-[1px] grayscale-[0.5] transition-all">
+        {children}
+      </div>
+
+      <div className="absolute inset-0 bg-background/10 backdrop-blur-[1px] z-5 rounded" />
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-primary/80 backdrop-blur-sm rounded-lg"
+      >
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-accent/30 bg-accent/10">
+          <Lock className="h-7 w-7 text-accent" />
+        </div>
+
+        {/* <Badge className="mt-4 bg-accent/20 text-accent border-accent/30">
+          <Crown className="mr-1 h-4 w-14" /> Premium Feature
+        </Badge> */}
+
+        <p className="mt-3 max-w-xs text-sm font-medium text-primary-foreground text-center">
+         {label ?? "Unlock full mock exams with a Pro subscription"}
+        </p>
+
+        <Button
+          size="lg"
+          onClick={() => router.push("/pricing")}
+          className="mt-4 bg-accent text-accent-foreground shadow-accent hover:bg-accent/90"
+        >
+          <Sparkles className="mr-2 h-4 w-4" /> Upgrade to Pro
+        </Button>
+      </motion.div>
+    </div>
+  );
+};

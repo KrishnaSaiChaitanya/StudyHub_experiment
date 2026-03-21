@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
+import { ProFeatureLock } from "@/components/ProFeatureLock";
 
 
 const resources = [
@@ -23,47 +23,6 @@ const resources = [
 
 const Practice = () => {
   const router = useRouter();
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
-
-  useEffect(() => {
-    const checkSubscription = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          router.push("/login?return_to=/practice");
-          return;
-        }
-        
-        const { data, error } = await supabase
-          .from("subscriptions")
-          .select("status")
-          .eq("id", session.user.id)
-          .single();
-        
-        if (data && data.status === "active") {
-          setIsSubscribed(true);
-          setIsLoading(false);
-        } else {
-          router.push("/pricing");
-        }
-      } catch (err) {
-        console.error("Error checking subscription:", err);
-        router.push("/pricing");
-      }
-    };
-    
-    checkSubscription();
-  }, [supabase, router]);
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Sparkles className="h-8 w-8 animate-spin text-accent" />
-      </div>
-    );
-  }
 
   return (
     <div className="bg-background w-full">
@@ -77,7 +36,7 @@ const Practice = () => {
         </div>
       </section>
       <section className="container py-16">
-        <div className="grid gap-4 md:grid-cols-2"> 
+        <div className="grid gap-4 md:grid-cols-2 mb-12"> 
           {resources.map((res, i) => (
             <Link href={res.link} key={res.title}>
             <motion.div
@@ -103,25 +62,27 @@ const Practice = () => {
           ))}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative mt-12 overflow-hidden rounded-xl bg-primary p-8 text-center"
-        >
-          <Award className="mx-auto h-8 w-8 text-accent" />
-          <h3 className="mt-4 text-xl font-bold text-primary-foreground">Take a Full Mock Exam</h3>
-          <p className="mt-2 text-xs text-primary-foreground/50">Simulate real CA exam conditions with timed, full-length tests.</p>
-          <div className="mt-4 flex items-center justify-center gap-6 text-xs text-primary-foreground/40">
-            <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> 30 Minutes</span>
-            <span>10 Questions</span>
-            <span>Instant Results</span>
-          </div>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" onClick={() => router.push('/practice/mock-exams')} className="bg-accent text-accent-foreground shadow-accent hover:bg-accent/90">View Mock Exams</Button>
-            <Button size="lg" variant="outline" onClick={() => router.push('/practice/performance')} className="border-accent/30 text-accent hover:bg-accent/10">View My Performance</Button>
-          </div>
-        </motion.div>
+        <ProFeatureLock>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="relative overflow-hidden rounded-xl bg-primary p-8 text-center"
+          >
+            <Award className="mx-auto h-8 w-8 text-accent" />
+            <h3 className="mt-4 text-xl font-bold text-primary-foreground">Take a Full Mock Exam</h3>
+            <p className="mt-2 text-xs text-primary-foreground/50">Simulate real CA exam conditions with timed, full-length tests.</p>
+            <div className="mt-4 flex items-center justify-center gap-6 text-xs text-primary-foreground/40">
+              <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> 30 Minutes</span>
+              <span>10 Questions</span>
+              <span>Instant Results</span>
+            </div>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Button size="lg" onClick={() => router.push('/practice/mock-exams')} className="bg-accent text-accent-foreground shadow-accent hover:bg-accent/90">View Mock Exams</Button>
+              <Button size="lg" variant="outline" onClick={() => router.push('/practice/performance')} className="border-accent/30 text-accent hover:bg-accent/10">View My Performance</Button>
+            </div>
+          </motion.div>
+        </ProFeatureLock>
       </section>
       </main>
       <Footer />
