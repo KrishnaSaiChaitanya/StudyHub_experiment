@@ -7,7 +7,7 @@ const Footer = () => (
       <div className="grid gap-8 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <Link href="/" className="flex items-center gap-2.5 h-16 w-16">
+            <Link href="/" prefetch={false} className="flex items-center gap-2.5 h-16 w-16">
           <LogoElement />
         </Link>
           </div>
@@ -49,7 +49,7 @@ const Footer = () => (
             <ul className="mt-3 space-y-2">
               {col.links.map((link) => (
                 <li key={link.name}>
-                  <Link href={link.href} className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+                  <Link href={link.href} prefetch={false} className="text-xs text-muted-foreground transition-colors hover:text-foreground">
                     {link.name}
                   </Link>
                 </li>

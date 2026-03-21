@@ -206,6 +206,7 @@ const Navbar = () => {
                 key={item.path}
                 href={item.path}
                 className="relative px-4 py-2 text-sm font-semibold transition-colors"
+                prefetch={false}
               >
                 <span className={isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}>
                   {item.label}
@@ -244,7 +245,7 @@ const Navbar = () => {
               <Link href="/sign-in">
                 <Button variant="ghost" size="sm" className="text-muted-foreground !font-semibold">Log in</Button>
               </Link>
-              <Link href="/sign-in">
+              <Link href="/sign-in" prefetch={false}>
                 <Button size="sm" className="bg-accent text-accent-foreground shadow-accent hover:bg-accent/90 !font-semibold">
                   Get Started
                 </Button>
@@ -272,6 +273,7 @@ const Navbar = () => {
               className={`block py-3 text-sm font-medium ${
                 pathname === item.path ? "text-foreground" : "text-muted-foreground"
               }`}
+              prefetch={false}
             >
               {item.label}
             </Link>
@@ -296,10 +298,10 @@ const Navbar = () => {
             </>
           ) : (
             <div className="mt-4 flex flex-col gap-2">
-              <Link href="/sign-in" onClick={() => setMobileOpen(false)}>
+              <Link href="/sign-in" prefetch={false} onClick={() => setMobileOpen(false)}>
                 <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground">Log in</Button>
               </Link>
-              <Link href="/sign-in" onClick={() => setMobileOpen(false)}>
+              <Link href="/sign-in" prefetch={false} onClick={() => setMobileOpen(false)}>
                 <Button size="sm" className="w-full bg-accent text-accent-foreground">Get Started</Button>
               </Link>
             </div>
