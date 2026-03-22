@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createClient } from "@/utils/supabase/client";
 import { signOutAction } from "@/app/actions";
 import { LogoElement } from "@/assets/logo";
+import { useSubscription } from "./SubscriptionProvider";
 
 const navItems = [
   { label: "Home", path: "/" },
@@ -29,7 +30,7 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
-  const [isPro, setIsPro] = useState(false);
+  const { isSubscribed: isPro } = useSubscription();
   
   const [profile, setProfile] = useState<any>(null);
   const [editName, setEditName] = useState("");
@@ -45,18 +46,13 @@ const Navbar = () => {
       
       if (user) {
         setEditName(user.user_metadata?.full_name || "");
-        const [subRes, profRes] = await Promise.all([
-          supabase.from("subscriptions").select("status").eq("id", user.id).maybeSingle(),
-          supabase.from("profiles").select("student_type").eq("id", user.id).maybeSingle()
-        ]);
+        const { data: profRes } = await supabase.from("profiles").select("student_type").eq("id", user.id).maybeSingle();
         
-        setIsPro(subRes.data?.status === "active");
-        setProfile(profRes.data);
-        if (profRes.data?.student_type) {
-          setEditStudentType(profRes.data.student_type);
+        setProfile(profRes);
+        if (profRes?.student_type) {
+          setEditStudentType(profRes.student_type);
         }
       } else {
-        setIsPro(false);
         setProfile(null);
       }
     };
@@ -67,17 +63,13 @@ const Navbar = () => {
       setUser(session?.user ?? null);
       if (session?.user) {
         setEditName(session.user.user_metadata?.full_name || "");
-        const [subRes, profRes] = await Promise.all([
-          supabase.from("subscriptions").select("status").eq("id", session.user.id).maybeSingle(),
-          supabase.from("profiles").select("student_type").eq("id", session.user.id).maybeSingle()
-        ]);
-        setIsPro(subRes.data?.status === "active");
-        setProfile(profRes.data);
-        if (profRes.data?.student_type) {
-          setEditStudentType(profRes.data.student_type);
+        const { data: profRes } = await supabase.from("profiles").select("student_type").eq("id", session.user.id).maybeSingle();
+
+        setProfile(profRes);
+        if (profRes?.student_type) {
+          setEditStudentType(profRes.student_type);
         }
       } else {
-        setIsPro(false);
         setProfile(null);
       }
     });

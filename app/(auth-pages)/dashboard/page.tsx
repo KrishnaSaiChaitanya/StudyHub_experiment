@@ -83,7 +83,7 @@ const Home = () => {
   const [isLoadingPapers, setIsLoadingPapers] = useState(true);
 
   useEffect(() => {
-    const fetchUserAndStats = async () => {
+    const fetchDashboardData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
@@ -94,70 +94,61 @@ const Home = () => {
 
         const todayStr = new Date().toISOString().split('T')[0];
 
-        // Fetch Streak
-        const { data: profile } = await supabase.from('profiles').select('current_streak').eq('id', user.id).single();
-        
-        // Fetch Today's Study Time
-        const { data: sessions } = await supabase.from('study_sessions').select('duration_seconds').eq('user_id', user.id).eq('session_date', todayStr);
-        const totalSeconds = sessions?.reduce((acc, curr) => acc + curr.duration_seconds, 0) || 0;
+        // Fetch Stats, Events, and Papers concurrently
+        const [
+          profileRes,
+          sessionsRes,
+          todosRes,
+          eventsRes,
+          papersRes
+        ] = await Promise.all([
+          supabase.from('profiles').select('current_streak').eq('id', user.id).single(),
+          supabase.from('study_sessions').select('duration_seconds').eq('user_id', user.id).eq('session_date', todayStr),
+          supabase.from('todos').select('status').eq('user_id', user.id),
+          supabase.from('calendar_events').select('*'),
+          supabase.from('practice_papers').select('*').order('created_at', { ascending: false }).limit(5)
+        ]);
+
+        // Process Stats
+        const totalSeconds = sessionsRes.data?.reduce((acc, curr) => acc + curr.duration_seconds, 0) || 0;
         const hours = Math.floor(totalSeconds / 3600);
         const minutes = Math.floor((totalSeconds % 3600) / 60);
 
-        // Fetch Todos
-        const { data: todos } = await supabase.from('todos').select('status').eq('user_id', user.id);
-        const completed = todos?.filter(t => t.status === 'completed').length || 0;
-        const total = todos?.length || 0;
+        const completed = todosRes.data?.filter(t => t.status === 'completed').length || 0;
+        const total = todosRes.data?.length || 0;
 
         setStats({
-          streak: profile?.current_streak || 0,
+          streak: profileRes.data?.current_streak || 0,
           studyTime: `${hours}h ${minutes}m`,
           tasksDone: `${completed} / ${total}`
         });
-      } catch (error) {
-        console.error("Error fetching stats:", error);
-      } finally {
-        setIsLoadingStats(false);
-      }
-    };
 
-    const fetchEvents = async () => {
-      try {
-        // Fetching all for simplicity, then filtering JS-side to handle the split date columns easily
-        const { data } = await supabase.from('calendar_events').select('*');
-        if (data) {
+        // Process Events
+        if (eventsRes.data) {
           const now = new Date();
-          const upcoming = data
+          const upcoming = eventsRes.data
             .map(e => ({ ...e, fullDate: new Date(e.event_year, e.event_month - 1, e.event_date) }))
             .filter(e => e.fullDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) // Today or future
             .sort((a, b) => a.fullDate.getTime() - b.fullDate.getTime())
             .slice(0, 5); // Top 5
           setEvents(upcoming);
         }
-      } catch (error) {
-        console.error("Error fetching events:", error);
-      } finally {
-        setIsLoadingEvents(false);
-      }
-    };
 
-    const fetchRecentPapers = async () => {
-      try {
-        const { data } = await supabase
-          .from('practice_papers')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5);
-        if (data) setRecentPapers(data);
+        // Process Papers
+        if (papersRes.data) {
+          setRecentPapers(papersRes.data);
+        }
+
       } catch (error) {
-        console.error("Error fetching papers:", error);
+        console.error("Error fetching dashboard data:", error);
       } finally {
+        setIsLoadingStats(false);
+        setIsLoadingEvents(false);
         setIsLoadingPapers(false);
       }
     };
 
-    fetchUserAndStats();
-    fetchEvents();
-    fetchRecentPapers();
+    fetchDashboardData();
   }, [supabase]);
 
   return (
@@ -220,7 +211,7 @@ const Home = () => {
               <h2 className="mb-4 text-base font-semibold text-foreground">Quick Access</h2>
               <div className="grid grid-cols-2 gap-4">
                 {quickLinks.map((link, i) => (
-                  <Link href={link.path} key={i}>
+                  <Link href={link.path} key={i} prefetch={false}>
                     <Card className="group cursor-pointer border-border transition-shadow hover:shadow-md">
                       <CardContent className="flex flex-col items-center gap-3 p-5 text-center">
                         <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${link.color}`}>
@@ -239,7 +230,7 @@ const Home = () => {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}>
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-foreground">Upcoming Events</h2>
-              <Link href="/events" className="text-sm font-medium text-accent hover:underline">
+              <Link href="/events" className="text-sm font-medium text-accent hover:underline" prefetch={false}>
                 Calendar
               </Link>
             </div>
@@ -281,7 +272,7 @@ const Home = () => {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.35 }} className="mt-10">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-foreground">Recently Added Papers</h2>
-            <Link href="/practice" className="text-sm font-medium text-accent hover:underline">
+            <Link href="/practice" className="text-sm font-medium text-accent hover:underline" prefetch={false}>
               View all
             </Link>
           </div>

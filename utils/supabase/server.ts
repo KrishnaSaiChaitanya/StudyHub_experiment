@@ -24,6 +24,9 @@ export const createClient = async () => {
           }
         },
       },
+      global: {
+        fetch: (url, options) => fetch(url, { ...options, cache: "no-store", next: { revalidate: 0 } }),
+      },
     },
   );
 };

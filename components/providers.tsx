@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { useState } from "react";
+import { SubscriptionProvider } from "./SubscriptionProvider";
+import { StudentTypeProvider } from "./StudentTypeProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -12,9 +14,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {children}
-        <Toaster />
-        <Sonner />
+        <SubscriptionProvider>
+          <StudentTypeProvider>
+            {children}
+            <Toaster />
+            <Sonner />
+          </StudentTypeProvider>
+        </SubscriptionProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
