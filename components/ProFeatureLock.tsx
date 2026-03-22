@@ -11,7 +11,26 @@ export const ProFeatureLock = ({ children, label }: { children: ReactNode, label
   const { isSubscribed, isLoading } = useSubscription();
   const router = useRouter();
 
-  if (isLoading) return <div className="w-full h-full min-h-[100px] animate-pulse bg-muted/10 rounded-[inherit]" />;
+  if (isLoading) {
+    return (
+      <div className="relative w-full h-full min-h-[160px] flex items-center justify-center overflow-hidden rounded-[inherit] bg-muted/80 border border-muted/40 blur-[1px]">
+        <div className="flex flex-col items-center justify-center w-full animate-pulse space-y-4 py-4">
+          {/* Icon Skeleton */}
+          <div className="h-14 w-14 rounded-full bg-muted-foreground/20" />
+          
+          {/* Text Skeleton */}
+          <div className="space-y-2 w-full flex flex-col items-center mt-3">
+            <div className="h-4 w-48 rounded bg-muted-foreground/20" />
+            {/* <div className="h-4 w-32 rounded bg-muted-foreground/20" /> */}
+          </div>
+
+          {/* Button Skeleton */}
+          <div className="h-11 w-40 rounded-md bg-muted-foreground/20 mt-4" />
+        </div>
+      </div>
+    );
+  }
+
   if (isSubscribed) return <>{children}</>;
 
   return (
