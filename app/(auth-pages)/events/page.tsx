@@ -22,9 +22,7 @@ type DbCalendarEvent = {
   event_time: string;
 };
 
-interface Props {
-  onBack: () => void;
-}
+
 
 // Map levels to their respective subjects to filter DB queries easily
 const LEVEL_SUBJECTS: Record<StudentLevel, SubjectCategory[]> = {
@@ -59,7 +57,7 @@ const formatSubjectName = (subject: string) => {
   return subject.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 };
 
-const ExamCalendarView = ({ onBack }: Props) => {
+const ExamCalendarView = () => {
   const supabase = createClient();
   const [currentDate, setCurrentDate] = useState(new Date()); 
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
