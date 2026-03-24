@@ -71,10 +71,11 @@ export const signInAction = async (formData: FormData) => {
 };
 export const signInWithGoogle = async (formData: FormData) => {
   const supabase = await createClient();
+  const origin = (await headers()).get("origin");
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${siteURL}/auth/callback`,
+      redirectTo: `${origin}/auth/callback`,
     },
   })
 
