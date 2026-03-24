@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -70,86 +70,71 @@ const daysLeft = Math.ceil((examDate.getTime() - today.getTime()) / (1000 * 60 *
 
 const Home = () => {
   const supabase = createClient();
-  const [userName, setUserName] = useState<string>("Student");
 
-  // Section States
-  const [stats, setStats] = useState({ streak: 0, studyTime: "0h 0m", tasksDone: "0 / 0" });
-  const [events, setEvents] = useState<DbEvent[]>([]);
-  const [recentPapers, setRecentPapers] = useState<DbPaper[]>([]);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["dashboardData"],
+    queryFn: async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Not authenticated");
 
-  // Loading States
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const [isLoadingPapers, setIsLoadingPapers] = useState(true);
+      // Use email prefix or metadata name if available
+      const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Student";
+      const todayStr = new Date().toISOString().split('T')[0];
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        
-        // Use email prefix or metadata name if available
-        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Student";
-        setUserName(name);
+      // Fetch Stats, Events, and Papers concurrently
+      const [
+        profileRes,
+        sessionsRes,
+        todosRes,
+        eventsRes,
+        papersRes
+      ] = await Promise.all([
+        supabase.from('profiles').select('current_streak').eq('id', user.id).single(),
+        supabase.from('study_sessions').select('duration_seconds').eq('user_id', user.id).eq('session_date', todayStr),
+        supabase.from('todos').select('status').eq('user_id', user.id),
+        supabase.from('calendar_events').select('*'),
+        supabase.from('practice_papers').select('*').order('created_at', { ascending: false }).limit(5)
+      ]);
 
-        const todayStr = new Date().toISOString().split('T')[0];
+      // Process Stats
+      const totalSeconds = sessionsRes.data?.reduce((acc: number, curr: any) => acc + curr.duration_seconds, 0) || 0;
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
 
-        // Fetch Stats, Events, and Papers concurrently
-        const [
-          profileRes,
-          sessionsRes,
-          todosRes,
-          eventsRes,
-          papersRes
-        ] = await Promise.all([
-          supabase.from('profiles').select('current_streak').eq('id', user.id).single(),
-          supabase.from('study_sessions').select('duration_seconds').eq('user_id', user.id).eq('session_date', todayStr),
-          supabase.from('todos').select('status').eq('user_id', user.id),
-          supabase.from('calendar_events').select('*'),
-          supabase.from('practice_papers').select('*').order('created_at', { ascending: false }).limit(5)
-        ]);
+      const completed = todosRes.data?.filter((t: any) => t.status === 'completed').length || 0;
+      const total = todosRes.data?.length || 0;
 
-        // Process Stats
-        const totalSeconds = sessionsRes.data?.reduce((acc, curr) => acc + curr.duration_seconds, 0) || 0;
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
+      // Process Events
+      let upcoming: DbEvent[] = [];
+      if (eventsRes.data) {
+        const now = new Date();
+        upcoming = eventsRes.data
+          .map((e: any) => ({ ...e, fullDate: new Date(e.event_year, e.event_month - 1, e.event_date) }))
+          .filter((e: any) => e.fullDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) // Today or future
+          .sort((a: any, b: any) => a.fullDate.getTime() - b.fullDate.getTime())
+          .slice(0, 5) as DbEvent[]; // Top 5
+      }
 
-        const completed = todosRes.data?.filter(t => t.status === 'completed').length || 0;
-        const total = todosRes.data?.length || 0;
-
-        setStats({
+      return {
+        userName: name,
+        stats: {
           streak: profileRes.data?.current_streak || 0,
           studyTime: `${hours}h ${minutes}m`,
           tasksDone: `${completed} / ${total}`
-        });
+        },
+        events: upcoming,
+        recentPapers: (papersRes.data || []) as DbPaper[]
+      };
+    }
+  });
 
-        // Process Events
-        if (eventsRes.data) {
-          const now = new Date();
-          const upcoming = eventsRes.data
-            .map(e => ({ ...e, fullDate: new Date(e.event_year, e.event_month - 1, e.event_date) }))
-            .filter(e => e.fullDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) // Today or future
-            .sort((a, b) => a.fullDate.getTime() - b.fullDate.getTime())
-            .slice(0, 5); // Top 5
-          setEvents(upcoming);
-        }
-
-        // Process Papers
-        if (papersRes.data) {
-          setRecentPapers(papersRes.data);
-        }
-
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setIsLoadingStats(false);
-        setIsLoadingEvents(false);
-        setIsLoadingPapers(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, [supabase]);
+  // Extract variables with fallbacks to prevent breaking the UI while loading
+  const {
+    userName = "Student",
+    stats = { streak: 0, studyTime: "0h 0m", tasksDone: "0 / 0" },
+    events = [],
+    recentPapers = []
+  } = data || {};
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -182,9 +167,9 @@ const Home = () => {
         {/* Stats Row */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            { icon: Flame, label: "Day Streak", value: `${stats.streak} days`, loading: isLoadingStats },
-            { icon: Clock, label: "Today's Study", value: stats.studyTime, loading: isLoadingStats },
-            { icon: CheckCircle2, label: "Tasks Done", value: stats.tasksDone, loading: isLoadingStats },
+            { icon: Flame, label: "Day Streak", value: `${stats.streak} days` },
+            { icon: Clock, label: "Today's Study", value: stats.studyTime },
+            { icon: CheckCircle2, label: "Tasks Done", value: stats.tasksDone },
           ].map((stat, i) => (
             <Card key={i} className="border-border">
               <CardContent className="flex items-center gap-3 p-4">
@@ -193,7 +178,7 @@ const Home = () => {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  {stat.loading ? (
+                  {isLoading ? (
                     <div className="h-6 w-16 mt-1 rounded bg-muted animate-pulse" />
                   ) : (
                     <p className="text-lg font-semibold text-foreground">{stat.value}</p>
@@ -236,7 +221,7 @@ const Home = () => {
             </div>
             <Card className="mt-4 border-border">
               <CardContent className="divide-y divide-border p-0 min-h-[200px]">
-                {isLoadingEvents ? (
+                {isLoading ? (
                   <div className="flex h-[200px] items-center justify-center">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
@@ -278,7 +263,7 @@ const Home = () => {
           </div>
           
           <div className="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1 snap-x">
-            {isLoadingPapers ? (
+            {isLoading ? (
               // Loading Skeletons
               Array.from({ length: 4 }).map((_, i) => (
                 <Card key={i} className="flex-shrink-0 w-52 border-border animate-pulse">

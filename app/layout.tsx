@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/sections/footer";
 import { Providers } from "@/components/providers";
+import QueryProvider from "@/components/QueryProvider";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -43,6 +44,7 @@ export default function RootLayout({
       <body>
        
           <main className="flex flex-col items-center">
+            <QueryProvider>
               <Providers>
                 <div className="w-full flex flex-col min-h-screen">
                   <Navbar />
@@ -53,6 +55,7 @@ export default function RootLayout({
                  
                 
               </Providers>
+            </QueryProvider>
           </main>
         
       </body>

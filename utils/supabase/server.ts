@@ -1,3 +1,4 @@
+// utils/supabase/server.ts
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -24,9 +25,6 @@ export const createClient = async () => {
           }
         },
       },
-      global: {
-        fetch: (url, options) => fetch(url, { ...options, cache: "no-store", next: { revalidate: 0 } }),
-      },
-    },
+    }
   );
 };

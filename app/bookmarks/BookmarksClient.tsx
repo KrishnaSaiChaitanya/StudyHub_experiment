@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
@@ -26,25 +26,8 @@ import {
   HelpCircle
 } from "lucide-react";
 import { ProFeatureLock } from "@/components/ProFeatureLock";
-import { createClient } from "@/utils/supabase/client"; // Adjust based on your setup
-
-
-type DbNote = {
-  id: string;
-  user_id: string;
-  title: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-};
-
-interface BookmarkItem {
-  id: string;
-  title: string;
-  type: "pdf" | "rtp" | "pyq" | "mtp";
-  source: string;
-  savedAt: string;
-}
+import { createClient } from "@/utils/supabase/client";
+import { BookmarkItem, DbNote } from "./types";
 
 const typeIcon = {
   pdf: FileText,
@@ -67,19 +50,20 @@ const typeBadgeClass = {
   mtp: "bg-amber-500/10 text-amber-600",
 };
 
-const formatSubjectName = (subject: string) => {
-  return subject.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-};
+interface BookmarksClientProps {
+  initialNotes: DbNote[];
+  initialBookmarks: BookmarkItem[];
+  userId: string;
+}
 
-const NotesBookmarks = () => {
+const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksClientProps) => {
   const supabase = createClient();
   
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [notes, setNotes] = useState<DbNote[]>([]);
-  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [notes, setNotes] = useState<DbNote[]>(initialNotes);
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>(initialBookmarks);
   
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [newNote, setNewNote] = useState(false);
@@ -88,69 +72,6 @@ const NotesBookmarks = () => {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      setIsLoading(true);
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        setUserId(user.id);
-
-        // Fetch Notes
-        const { data: notesData } = await supabase
-          .from("notes")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("updated_at", { ascending: false });
-        
-        if (notesData) setNotes(notesData);
-
-        // Fetch Bookmarks (Join with Planners and Practice Papers)
-        const { data: bookmarksData } = await supabase
-          .from("user_bookmarks")
-          .select(`
-            id,
-            created_at,
-            study_planners ( title, category ),
-            practice_papers ( title, subject, type )
-          `)
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-
-        if (bookmarksData) {
-          const formattedBookmarks: BookmarkItem[] = bookmarksData.map((b: any) => {
-            if (b.study_planners) {
-              return {
-                id: b.id,
-                title: b.study_planners.title,
-                type: "pdf" as const,
-                source: formatSubjectName(b.study_planners.category),
-                savedAt: new Date(b.created_at).toISOString().split('T')[0]
-              };
-            } else if (b.practice_papers) {
-              return {
-                id: b.id,
-                title: b.practice_papers.title,
-                type: b.practice_papers.type,
-                source: formatSubjectName(b.practice_papers.subject),
-                savedAt: new Date(b.created_at).toISOString().split('T')[0]
-              };
-            }
-            return null;
-          }).filter(Boolean) as BookmarkItem[];
-
-          setBookmarks(formattedBookmarks);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [supabase]);
 
   const handleSaveNote = async () => {
     if (!noteTitle.trim() || !userId) return;
@@ -217,7 +138,6 @@ const NotesBookmarks = () => {
 
   return (
     <div className="min-h-screen">
-
       <section className="bg-primary py-16">
         <div className="container">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl text-center">
@@ -416,4 +336,4 @@ const NotesBookmarks = () => {
   );
 };
 
-export default NotesBookmarks;
+export default BookmarksClient;
