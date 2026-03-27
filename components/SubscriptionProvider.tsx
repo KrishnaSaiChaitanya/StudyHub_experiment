@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { fetchAndCacheAuthState, getCachedSubscription } from "@/utils/auth";
 
 interface SubscriptionContextType {
   isSubscribed: boolean;
@@ -23,24 +24,8 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
   const checkSubscription = async () => {
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setIsSubscribed(false);
-        setIsLoading(false);
-        return;
-      }
-      
-      const { data, error } = await supabase
-        .from("subscriptions")
-        .select("status")
-        .eq("id", session.user.id)
-        .single();
-      
-      if (data && data.status === "active") {
-        setIsSubscribed(true);
-      } else {
-        setIsSubscribed(false);
-      }
+      const { isSubscribed } = await fetchAndCacheAuthState(supabase);
+      setIsSubscribed(isSubscribed);
     } catch (err) {
       console.error("Error checking subscription:", err);
       setIsSubscribed(false);
@@ -50,6 +35,13 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
   };
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const cached = getCachedSubscription();
+    if (cached !== null) {
+      setIsSubscribed(cached);
+      setIsLoading(false);
+      return;
+    }
     checkSubscription();
   }, [supabase.auth]);
 

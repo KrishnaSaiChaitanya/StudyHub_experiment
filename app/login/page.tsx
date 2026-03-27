@@ -24,6 +24,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+import { fetchAndCacheAuthState } from "@/utils/auth";
 
 // Improved schema with additional validation rules
 const formSchema = z.object({
@@ -37,6 +40,7 @@ const formSchema = z.object({
 export default function LoginForm() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -49,16 +53,21 @@ export default function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      startTransition(async () => {
-        console.log(values);
-        toast(
-          <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-            <code className="text-white">
-              {JSON.stringify(values, null, 2)}
-            </code>
-          </pre>
-        );
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
       });
+      if (error) {
+        throw error;
+      }
+
+      const signedUser = data?.user;
+      if (signedUser) {
+        await fetchAndCacheAuthState(supabase);
+      }
+
+      router.push("/protected");
     } catch (error) {
       console.error("Form submission error", error);
       toast({

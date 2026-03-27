@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Menu, X, User, LogOut, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/utils/supabase/client";
-import { signOutAction } from "@/app/actions";
+import { cacheAuthState, clearAuthCache, fetchAndCacheAuthState, getCachedUser, getCachedSubscription } from "@/utils/auth";
 import { LogoElement } from "@/assets/logo";
 import { useSubscription } from "./SubscriptionProvider";
 
@@ -26,6 +26,7 @@ const navItems = [
 
 const authRoutes = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
 
+
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -38,44 +39,60 @@ const Navbar = () => {
   const [isSaving, setIsSaving] = useState(false);
   
   const supabase = createClient();
+  const router = useRouter();
 
-  useEffect(() => {
-    const fetchUserAndSub = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Sign out error:", error);
+      }
+    } catch (err) {
+      console.error("Sign out failed:", err);
+    } finally {
+      clearAuthCache();
+      router.push("/sign-in");
+    }
+  };
+
+
+  // useEffect(() => {
+  //   const fetchUserAndSub = async () => {
+  //     const { data: { user } } = await supabase.auth.getUser();
+  //     setUser(user);
       
-      if (user) {
-        setEditName(user.user_metadata?.full_name || "");
-        const { data: profRes } = await supabase.from("profiles").select("student_type").eq("id", user.id).maybeSingle();
+  //     if (user) {
+  //       setEditName(user.user_metadata?.full_name || "");
+  //       const { data: profRes } = await supabase.from("profiles").select("student_type").eq("id", user.id).maybeSingle();
         
-        setProfile(profRes);
-        if (profRes?.student_type) {
-          setEditStudentType(profRes.student_type);
-        }
-      } else {
-        setProfile(null);
-      }
-    };
+  //       setProfile(profRes);
+  //       if (profRes?.student_type) {
+  //         setEditStudentType(profRes.student_type);
+  //       }
+  //     } else {
+  //       setProfile(null);
+  //     }
+  //   };
 
-    fetchUserAndSub();
+  //   fetchUserAndSub();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setEditName(session.user.user_metadata?.full_name || "");
-        const { data: profRes } = await supabase.from("profiles").select("student_type").eq("id", session.user.id).maybeSingle();
+  //   const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+  //     setUser(session?.user ?? null);
+  //     if (session?.user) {
+  //       setEditName(session.user.user_metadata?.full_name || "");
+  //       const { data: profRes } = await supabase.from("profiles").select("student_type").eq("id", session.user.id).maybeSingle();
 
-        setProfile(profRes);
-        if (profRes?.student_type) {
-          setEditStudentType(profRes.student_type);
-        }
-      } else {
-        setProfile(null);
-      }
-    });
+  //       setProfile(profRes);
+  //       if (profRes?.student_type) {
+  //         setEditStudentType(profRes.student_type);
+  //       }
+  //     } else {
+  //       setProfile(null);
+  //     }
+  //   });
 
-    return () => subscription.unsubscribe();
-  }, [supabase.auth, supabase]);
+  //   return () => subscription.unsubscribe();
+  // }, [supabase.auth, supabase]);
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -88,6 +105,7 @@ const Navbar = () => {
         });
         if (data?.user) {
           setUser(data.user);
+          cacheAuthState(data.user, getCachedSubscription() ?? isPro);
         }
       }
 
@@ -103,6 +121,29 @@ const Navbar = () => {
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const cachedUser = getCachedUser();
+    if (cachedUser) {
+      setUser(cachedUser);
+      setEditName(cachedUser.user_metadata?.full_name || "");
+      return;
+    }
+
+    const hydrateUser = async () => {
+      const { user: authUser } = await fetchAndCacheAuthState(supabase);
+      if (!authUser) {
+        clearAuthCache();
+        return;
+      }
+
+      setUser(authUser);
+      setEditName(authUser.user_metadata?.full_name || "");
+    };
+
+    hydrateUser();
+  }, [supabase]);
 
   const renderUserPopover = (mobile = false) => (
     <Popover>
@@ -225,12 +266,10 @@ const Navbar = () => {
                 </div>
               )}
               {renderUserPopover(false)}
-              <form action={signOutAction}>
-                <Button variant="ghost" size="sm" type="submit" className="text-muted-foreground hover:text-white">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Log out
-                </Button>
-              </form>
+              <Button variant="ghost" size="sm" type="button" onClick={handleSignOut} className="text-muted-foreground hover:text-white">
+                <LogOut className="h-4 w-4 mr-2" />
+                Log out
+              </Button>
             </>
           ) : (
             <>
@@ -280,12 +319,10 @@ const Navbar = () => {
               )}
               <div className={`${isPro ? 'mt-2' : 'mt-4'} mb-2 flex flex-col gap-2`}>
                 {renderUserPopover(true)}
-                <form action={signOutAction}>
-                  <Button variant="ghost" size="sm" type="submit" className="w-full justify-start text-muted-foreground hover:text-destructive">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Log out
-                  </Button>
-                </form>
+                <Button variant="ghost" size="sm" type="button" onClick={handleSignOut} className="w-full justify-start text-muted-foreground hover:text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Log out
+                </Button>
               </div>
             </>
           ) : (

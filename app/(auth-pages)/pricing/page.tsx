@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { useSubscription } from "@/components/SubscriptionProvider";
+import { fetchAndCacheAuthState } from "@/utils/auth";
 
 const freeFeatures = [
   "MTP, RTP & PYQ Access",
@@ -150,6 +151,7 @@ const Pricing = () => {
           
           const verifyData = await verifyRes.json();
           if (verifyData.success) {
+            await fetchAndCacheAuthState(supabase);
             await checkSubscription();
             setIsSuccess(true);
             toast.success("Subscription activated successfully!");
