@@ -10,7 +10,7 @@ const tools = [
   { icon: Timer, title: "Focus Timer", description: "Pomodoro-based timer with session tracking and insights.", path: "/study/progress" },
   { icon: Target, title: "Task Manager", description: "Break down syllabus into actionable tasks and track completion.", path: "/study/progress" },
   { icon: BarChart3, title: "Progress Dashboard", description: "Visualize preparation across subjects with analytics.", path: "/study/progress" },
-  { icon: CalendarDays, title: "Exam Calendar", description: "ICAI exam dates, registration deadlines, and reminders.", badge: "New", path: "/events" },
+  { icon: CalendarDays, title: "Exam Calendar", description: "ICAI exam dates, registration deadlines, and reminders.", badge: "New", path: "/study/events" },
   { icon: ClipboardList, title: "Notes & Bookmarks", description: "Save notes, bookmark resources, and organize materials.", path: "/bookmarks" },
 ];
 

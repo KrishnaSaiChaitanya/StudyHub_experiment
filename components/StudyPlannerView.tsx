@@ -121,17 +121,28 @@ const StudyPlannerView = ({ onBack }: Props) => {
   return (
     <div>
       {/* Header */}
-      <section className="bg-primary py-16">
-        <div className="container">
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-            <button onClick={onBack} className="mb-4 flex items-center gap-1.5 text-xs text-primary-foreground/50 hover:text-primary-foreground transition-colors">
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to Study Tools
-            </button>
-            <h1 className="text-3xl font-bold text-primary-foreground">Study <span className="text-gradient-blue">Planners</span></h1>
-            <p className="mt-2 text-sm text-primary-foreground/50">Browse and download study planners shared by top faculty.</p>
-          </motion.div>
-        </div>
-      </section>
+      <section className="bg-primary py-16 mx-auto">
+  <div className="container">
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mx-auto flex flex-col items-center text-center"
+    >
+      <button
+        onClick={onBack}
+        className="mb-4 flex items-center gap-1.5 text-xs text-primary-foreground/50 hover:text-primary-foreground transition-colors"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to Study Tools
+      </button>
+      <h1 className="text-3xl font-bold text-primary-foreground">
+        Study <span className="text-gradient-blue">Planners</span>
+      </h1>
+      <p className="mt-2 text-sm text-primary-foreground/50">
+        Browse and download study planners shared by top faculty.
+      </p>
+    </motion.div>
+  </div>
+</section>
 
       {/* Search + Actions */}
       <section className="container py-8">

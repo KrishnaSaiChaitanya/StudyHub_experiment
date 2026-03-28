@@ -19,6 +19,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
+import { useStudent } from "@/components/StudentTypeProvider";
+import { format } from "date-fns";
 
 type DbPaper = {
   id: string;
@@ -63,37 +65,37 @@ const timeAgo = (dateString: string) => {
   return `${Math.floor(seconds / 86400)}d ago`;
 };
 
-// Calculate days left for main exam (Static target for now)
-const examDate = new Date("2026-05-15");
-const today = new Date();
-const daysLeft = Math.ceil((examDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+// Remove static calculation
 
 const Home = () => {
   const supabase = createClient();
+  const { studentLevel, loading: studentLoading } = useStudent();
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["dashboardData"],
+    queryKey: ["dashboardData", studentLevel],
+    enabled: !studentLoading,
     queryFn: async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) throw new Error("Not authenticated");
 
-      // Use email prefix or metadata name if available
       const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Student";
       const todayStr = new Date().toISOString().split('T')[0];
 
-      // Fetch Stats, Events, and Papers concurrently
+      // Fetch Stats, Events, Papers, and Exam Dates concurrently
       const [
         profileRes,
         sessionsRes,
         todosRes,
         eventsRes,
-        papersRes
+        papersRes,
+        examDatesRes
       ] = await Promise.all([
         supabase.from('profiles').select('current_streak').eq('id', user.id).single(),
         supabase.from('study_sessions').select('duration_seconds').eq('user_id', user.id).eq('session_date', todayStr),
         supabase.from('todos').select('status').eq('user_id', user.id),
-        supabase.from('calendar_events').select('*'),
-        supabase.from('practice_papers').select('*').order('created_at', { ascending: false }).limit(5)
+        supabase.from('calendar_events').select('*').eq('level', studentLevel || 'foundation'),
+        supabase.from('practice_papers').select('*').eq('level', studentLevel || 'foundation').order('created_at', { ascending: false }).limit(5),
+        supabase.from('exam_dates').select('*')
       ]);
 
       // Process Stats
@@ -104,15 +106,23 @@ const Home = () => {
       const completed = todosRes.data?.filter((t: any) => t.status === 'completed').length || 0;
       const total = todosRes.data?.length || 0;
 
+      // Process Exam Date
+      const userLevel = studentLevel || 'foundation';
+      const examDateData = examDatesRes.data?.find((d: any) => d.level === userLevel);
+      const targetDate = examDateData ? new Date(examDateData.exam_date) : new Date("2026-05-15");
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const daysLeft = Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
       // Process Events
       let upcoming: DbEvent[] = [];
       if (eventsRes.data) {
         const now = new Date();
         upcoming = eventsRes.data
           .map((e: any) => ({ ...e, fullDate: new Date(e.event_year, e.event_month - 1, e.event_date) }))
-          .filter((e: any) => e.fullDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) // Today or future
+          .filter((e: any) => e.fullDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))
           .sort((a: any, b: any) => a.fullDate.getTime() - b.fullDate.getTime())
-          .slice(0, 5) as DbEvent[]; // Top 5
+          .slice(0, 3) as DbEvent[];
       }
 
       return {
@@ -123,7 +133,10 @@ const Home = () => {
           tasksDone: `${completed} / ${total}`
         },
         events: upcoming,
-        recentPapers: (papersRes.data || []) as DbPaper[]
+        recentPapers: (papersRes.data || []) as DbPaper[],
+        daysLeft,
+        targetDate: format(targetDate, "MMMM dd, yyyy"),
+        userLevel: userLevel.charAt(0).toUpperCase() + userLevel.slice(1)
       };
     }
   });
@@ -133,7 +146,10 @@ const Home = () => {
     userName = "Student",
     stats = { streak: 0, studyTime: "0h 0m", tasksDone: "0 / 0" },
     events = [],
-    recentPapers = []
+    recentPapers = [],
+    daysLeft = 0,
+    targetDate = "...",
+    userLevel = "..."
   } = data || {};
 
   return (
@@ -158,8 +174,17 @@ const Home = () => {
               <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 Days Left for Exam
               </p>
-              <p className="text-5xl font-extrabold text-accent">{daysLeft}</p>
-              <p className="text-sm text-muted-foreground">CA Foundation — May 15, 2026</p>
+              {isLoading || studentLoading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="h-12 w-20 rounded bg-accent/20 animate-pulse" />
+                  <div className="h-4 w-40 rounded bg-accent/20 animate-pulse rounded-full" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-5xl font-extrabold text-accent">{daysLeft}</p>
+                  <p className="text-sm text-muted-foreground">CA {userLevel} — {targetDate}</p>
+                </>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -198,9 +223,9 @@ const Home = () => {
                 {quickLinks.map((link, i) => (
                   <Link href={link.path} key={i} prefetch={false}>
                     <Card className="group cursor-pointer border-border transition-shadow hover:shadow-md">
-                      <CardContent className="flex flex-col items-center gap-3 p-5 text-center">
-                        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${link.color}`}>
-                          <link.icon className="h-5 w-5" />
+                      <CardContent className="flex flex-col items-center gap-3 p-4 text-center">
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${link.color}`}>
+                          <link.icon className="h-4 w-4" />
                         </div>
                         <span className="text-sm font-medium text-foreground">{link.label}</span>
                       </CardContent>

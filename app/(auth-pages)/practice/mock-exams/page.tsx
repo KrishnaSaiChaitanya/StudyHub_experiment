@@ -85,7 +85,7 @@ export default function MockExamsPage() {
               <h2 className="text-2xl font-bold text-card-foreground">All Tests</h2>
               <p className="text-sm text-muted-foreground mt-1">Choose from our curated list of ICAI-aligned mock exams</p>
             </div>
-            <Button variant="outline" onClick={() => router.push('/practice')} className="hover:bg-secondary/50">
+            <Button variant="outline" onClick={() => router.push('/practice')} className="hover:border-primary">
               Back to Practice Center
             </Button>
           </div>

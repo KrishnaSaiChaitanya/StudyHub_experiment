@@ -23,11 +23,13 @@ import {
   X,
   Search,
   Loader2,
-  HelpCircle
+  HelpCircle,
+  ArrowLeft
 } from "lucide-react";
 import { ProFeatureLock } from "@/components/ProFeatureLock";
 import { createClient } from "@/utils/supabase/client";
 import { BookmarkItem, DbNote } from "./types";
+import { useRouter } from "next/navigation";
 
 const typeIcon = {
   pdf: FileText,
@@ -58,6 +60,7 @@ interface BookmarksClientProps {
 
 const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksClientProps) => {
   const supabase = createClient();
+  const router = useRouter();
   
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -136,11 +139,21 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
     return matchesSearch && matchesType;
   });
 
+  const onBack = () => {
+    router.push("/study");
+  };
+
   return (
     <div className="min-h-screen">
       <section className="bg-primary py-16">
         <div className="container">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl text-center">
+              <button
+                    onClick={onBack}
+                    className="mb-4 flex items-center gap-1.5 text-xs text-primary-foreground/50  mx-auto hover:text-primary-foreground transition-colors"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" /> Back to Study Tools
+                  </button>
             <h1 className="text-3xl font-bold text-primary-foreground">
               Notes & <span className="text-accent">Bookmarks</span>
             </h1>

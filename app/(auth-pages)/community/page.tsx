@@ -7,6 +7,7 @@ import Link from "next/link";
 
 const sections = [
   { icon: Users, title: "Group Study Sessions", description: "Join live study rooms with fellow aspirants. Collaborate on tough topics and stay motivated.", cta: "Find a Group", href: "/community/rooms", disabled: false },
+  { icon: Compass, title: "Community Library", description: "Contribute to the collective knowledge. Upload study planners, notes, or tips for others.", cta: "Upload Material", href: "/community/upload", disabled: false },
   { icon: MessageCircle, title: "Discussion Forum", description: "Post questions, share insights, and get answers from peers and mentors.", cta: "Coming Soon", disabled: true },
   { icon: Compass, title: "Career Guidance", description: "Get mentorship from qualified CAs. Explore articleship and career paths.", cta: "Coming Soon", disabled: true },
   { icon: TrendingUp, title: "Leaderboard", description: "Compete on mock tests, study streaks, and community contributions.", cta: "Coming Soon", disabled: true },

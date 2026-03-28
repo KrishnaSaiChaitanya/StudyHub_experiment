@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/utils/supabase/client"; // Adjust to your Supabase client path
 import { StudentLevel, SubjectCategory } from "@/utils/supabase/types";
+import { useRouter } from "next/navigation";
 
 
 type DbCalendarEvent = {
@@ -59,6 +60,7 @@ const formatSubjectName = (subject: string) => {
 
 const ExamCalendarView = () => {
   const supabase = createClient();
+  const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date()); 
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [filterSubject, setFilterSubject] = useState<SubjectCategory | null>(null);
@@ -136,24 +138,46 @@ const ExamCalendarView = () => {
     return SUBJECT_COLORS[index % SUBJECT_COLORS.length];
   };
 
+  const onBack = () => {
+    router.push("/study");
+  };
+
   const cells: (number | null)[] = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-  if (isLoading) return <div className="p-8 h-[800px] w-full text-center text-muted-foreground animate-pulse"><p className="h-full">Loading calendar...</p></div>;
+  if (isLoading) return  <motion.div 
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center p-24"
+              >
+                <div className="relative h-16 w-16">
+                  <div className="absolute inset-0 rounded-full border-t-2 border-accent animate-spin"></div>
+                  <div className="absolute inset-2 rounded-full border-r-2 border-indigo-400 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+                </div>
+                <p className="mt-4 text-muted-foreground text-sm font-medium">Loading Calendar Events...</p>
+              </motion.div>;
 
   return (
+    <><section className="bg-primary py-16 mx-auto w-full text-center">
+            <div className="container">
+              <div className="mx-auto">
+                <button onClick={onBack} className="mb-4 flex items-center gap-1.5 text-xs text-primary-foreground/50  mx-auto hover:text-primary-foreground transition-colors">
+                  <ArrowLeft className="h-3.5 w-3.5" /> Back to Study Tools
+                </button>
+                <h1 className="text-3xl font-bold text-primary-foreground">Calendar <span className="text-gradient-blue">Events</span></h1>
+                <p className="mt-2 text-sm text-primary-foreground/50">Browse and download study planners shared by top faculty.</p>
+              </div>
+            </div>
+          </section>
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="container py-8">
       {/* <Button variant="ghost" onClick={onBack} className="mb-6 gap-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to Study Tools
       </Button> */}
 
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground">Study <span className="text-gradient-to-r from-primary to-secondary">Calendar</span></h2>
-        {/* <p className="mt-1 text-sm text-muted-foreground">
-          Showing events for <span className="font-semibold text-primary capitalize">{userLevel}</span> level subjects.
-        </p> */}
-      </div>
+     
 
       {/* Dynamic Subject Filters */}
       <div className="mb-6 flex flex-wrap gap-2">
@@ -253,7 +277,7 @@ const ExamCalendarView = () => {
                           initial={{ opacity: 0, y: 5, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                          className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-xl border bg-background p-4 shadow-xl"
+                          className="absolute left-[-50%] top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-xl border bg-background p-4 shadow-xl"
                         >
                           <div className="mb-3 flex items-center justify-between">
                             <h4 className="text-sm font-semibold text-foreground">
@@ -327,6 +351,7 @@ const ExamCalendarView = () => {
         </div>
       </div>
     </motion.div>
+    </>
   );
 };
 

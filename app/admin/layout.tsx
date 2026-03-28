@@ -1,16 +1,19 @@
 "use client"
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Users, FileText, LayoutDashboard } from "lucide-react";
+import { BookOpen, Users, FileText, LayoutDashboard, Mail, CalendarDays } from "lucide-react";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/admin", exact: true, icon: LayoutDashboard, label: "Overview" },
+  { href: "/admin/contact-us", exact: false, icon: Mail, label: "Contact Us" },
   { href: "/admin/planners", exact: false, icon: BookOpen, label: "Study Planners" },
   { href: "/admin/tests", exact: false, icon: FileText, label: "Tests & MCQs" },
   { href: "/admin/practice-papers", exact: false, icon: BookOpen, label: "Practice Papers" },
   { href: "/admin/events", exact: false, icon: FileText, label: "Calendar Events" },
+  { href: "/admin/exam-dates", exact: false, icon: CalendarDays, label: "Exam Dates" },
+  { href: "/admin/community-submissions", exact: false, icon: Users, label: "Community Submittions" },
   { href: "/admin/faculty", exact: false, icon: Users, label: "Faculty" },
 ];
 

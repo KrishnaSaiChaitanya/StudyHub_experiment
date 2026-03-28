@@ -28,9 +28,9 @@ const Footer = () => (
           { 
             title: "Resources", 
             links: [
-              { name: "MTP Papers", href: "/study" },
-              { name: "RTP Papers", href: "/study" },
-              { name: "PYQ Bank", href: "/study" },
+              { name: "MTP Papers", href: "/practice/mtp-papers" },
+              { name: "RTP Papers", href: "/practice/rtp-papers" },
+              { name: "PYQ Bank", href: "/practice/pyq-bank" },
               { name: "Mock Tests", href: "/practice/mock-exams" }
             ] 
           },

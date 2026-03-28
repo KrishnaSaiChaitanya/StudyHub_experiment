@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Menu, X, User, LogOut, Crown } from "lucide-react";
+import { Menu, X, User as UserIcon, LogOut, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { createClient } from "@/utils/supabase/client";
 import { cacheAuthState, clearAuthCache, fetchAndCacheAuthState, getCachedUser, getCachedSubscription } from "@/utils/auth";
 import { LogoElement } from "@/assets/logo";
 import { useSubscription } from "./SubscriptionProvider";
+import { useStudent } from "./StudentTypeProvider";
 
 const navItems = [
   { label: "Home", path: "/" },
@@ -21,19 +22,18 @@ const navItems = [
   { label: "Practice", path: "/practice" },
   { label: "Faculty", path: "/faculty" },
   { label: "Community", path: "/community" },
-  {label:"Pricing", path:"/pricing"}
+  { label: "Pricing", path: "/pricing" }
 ];
 
 const authRoutes = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
-
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const { isSubscribed: isPro } = useSubscription();
+  const { studentLevel, refreshProfile } = useStudent();
   
-  const [profile, setProfile] = useState<any>(null);
   const [editName, setEditName] = useState("");
   const [editStudentType, setEditStudentType] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -55,45 +55,6 @@ const Navbar = () => {
     }
   };
 
-
-  // useEffect(() => {
-  //   const fetchUserAndSub = async () => {
-  //     const { data: { user } } = await supabase.auth.getUser();
-  //     setUser(user);
-      
-  //     if (user) {
-  //       setEditName(user.user_metadata?.full_name || "");
-  //       const { data: profRes } = await supabase.from("profiles").select("student_type").eq("id", user.id).maybeSingle();
-        
-  //       setProfile(profRes);
-  //       if (profRes?.student_type) {
-  //         setEditStudentType(profRes.student_type);
-  //       }
-  //     } else {
-  //       setProfile(null);
-  //     }
-  //   };
-
-  //   fetchUserAndSub();
-
-  //   const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-  //     setUser(session?.user ?? null);
-  //     if (session?.user) {
-  //       setEditName(session.user.user_metadata?.full_name || "");
-  //       const { data: profRes } = await supabase.from("profiles").select("student_type").eq("id", session.user.id).maybeSingle();
-
-  //       setProfile(profRes);
-  //       if (profRes?.student_type) {
-  //         setEditStudentType(profRes.student_type);
-  //       }
-  //     } else {
-  //       setProfile(null);
-  //     }
-  //   });
-
-  //   return () => subscription.unsubscribe();
-  // }, [supabase.auth, supabase]);
-
   const handleSaveProfile = async () => {
     if (!user) return;
     setIsSaving(true);
@@ -109,14 +70,14 @@ const Navbar = () => {
         }
       }
 
-      if (editStudentType && editStudentType !== profile?.student_type) {
-        await supabase
-          .from("profiles")
-          .update({ student_type: editStudentType })
-          .eq("id", user.id);
-        
-        setProfile((prev: any) => ({ ...prev, student_type: editStudentType }));
-      }
+      await supabase
+        .from("profiles")
+        .update({ student_type: editStudentType })
+        .eq("id", user.id);
+      
+      await refreshProfile();
+    } catch (err) {
+      console.error("Error saving profile:", err);
     } finally {
       setIsSaving(false);
     }
@@ -128,22 +89,26 @@ const Navbar = () => {
     if (cachedUser) {
       setUser(cachedUser);
       setEditName(cachedUser.user_metadata?.full_name || "");
-      return;
     }
 
     const hydrateUser = async () => {
       const { user: authUser } = await fetchAndCacheAuthState(supabase);
-      if (!authUser) {
+      if (authUser) {
+        setUser(authUser);
+        setEditName(authUser.user_metadata?.full_name || "");
+      } else {
         clearAuthCache();
-        return;
       }
-
-      setUser(authUser);
-      setEditName(authUser.user_metadata?.full_name || "");
     };
 
     hydrateUser();
   }, [supabase]);
+
+  useEffect(() => {
+    if (studentLevel) {
+      setEditStudentType(studentLevel);
+    }
+  }, [studentLevel]);
 
   const renderUserPopover = (mobile = false) => (
     <Popover>
@@ -151,7 +116,7 @@ const Navbar = () => {
         <button className={`flex items-center gap-2 text-sm font-medium text-foreground bg-secondary/50 hover:bg-secondary/70 transition-colors border border-border ${
           mobile ? "px-3 py-2 rounded-lg w-full text-left" : "px-3 py-1.5 rounded-full"
         }`}>
-          <User className="h-4 w-4 text-accent shrink-0" />
+          <UserIcon className="h-4 w-4 text-accent shrink-0" />
           <span className="truncate flex-1 text-left">
             {user?.user_metadata?.full_name || user?.email || "User"}
           </span>
@@ -233,7 +198,7 @@ const Navbar = () => {
 
         <div className="hidden items-center gap-1 md:flex">
           {navItems.filter((i) => i.path === "/pricing" ? !isPro : true).map((item) => {
-            const isActive = item.path === "/" ? pathname === "/" || pathname === "/dashboard" :pathname === item.path;
+            const isActive = item.path === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.includes(item.path);
             return (
               <Link
                 key={item.path}
