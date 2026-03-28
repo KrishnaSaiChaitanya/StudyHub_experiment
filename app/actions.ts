@@ -67,7 +67,7 @@ export const signInAction = async (formData: FormData) => {
       error.message);
   }
 
-  return redirect("/protected");
+  return redirect("/dashboard");
 };
 export const signInWithGoogle = async (formData: FormData) => {
   const supabase = await createClient();
@@ -90,7 +90,7 @@ export const signInWithGoogle = async (formData: FormData) => {
       error.message);
   }
 
-  return redirect("/protected");
+  return redirect("/dashboard");
 };
 
 export const forgotPasswordAction = async (formData: FormData) => {

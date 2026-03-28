@@ -67,7 +67,7 @@ export default function LoginForm() {
         await fetchAndCacheAuthState(supabase);
       }
 
-      router.push("/protected");
+      router.push("/dasboard");
     } catch (error) {
       console.error("Form submission error", error);
       toast({

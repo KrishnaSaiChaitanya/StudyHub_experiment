@@ -109,7 +109,7 @@ const Pricing = () => {
       
       if (!session) {
         toast.error("Please login to subscribe");
-        router.push("/login?return_to=/pricing");
+        router.push("/sign-in?return_to=/pricing");
         return;
       }
 
