@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(bytes);
 
     // Upload to Cloudinary
-    return new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
           resource_type: 'raw', // Use raw for PDF files
@@ -25,13 +25,15 @@ export async function POST(req: Request) {
         (error: any, result: any) => {
           if (error) {
             console.error('Cloudinary upload error:', error);
-            resolve(NextResponse.json({ error: 'Cloudinary upload failed' }, { status: 500 }));
+            reject(error);
           } else {
-            resolve(NextResponse.json({ url: result!.secure_url }));
+            resolve(result);
           }
         }
       ).end(buffer);
     });
+
+    return NextResponse.json({ url: (result as any).secure_url });
   } catch (error) {
     console.error('Upload API error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
