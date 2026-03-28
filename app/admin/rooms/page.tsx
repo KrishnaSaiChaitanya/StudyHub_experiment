@@ -123,7 +123,7 @@ export default function StudyRoomsAdmin() {
     <div className="space-y-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
             <Video className="h-10 w-10 text-primary" />
             Study Rooms
           </h1>
