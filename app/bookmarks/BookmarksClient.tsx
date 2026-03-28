@@ -24,7 +24,9 @@ import {
   Search,
   Loader2,
   HelpCircle,
-  ArrowLeft
+  ArrowLeft,
+  Eye,
+  ExternalLink
 } from "lucide-react";
 import { ProFeatureLock } from "@/components/ProFeatureLock";
 import { createClient } from "@/utils/supabase/client";
@@ -36,6 +38,7 @@ const typeIcon = {
   rtp: BookOpen,
   pyq: HelpCircle,
   mtp: ClipboardList,
+  question: HelpCircle,
 };
 
 const typeLabel = {
@@ -43,6 +46,7 @@ const typeLabel = {
   rtp: "RTP",
   pyq: "PYQ",
   mtp: "MTP",
+  question: "Question",
 };
 
 const typeBadgeClass = {
@@ -50,6 +54,7 @@ const typeBadgeClass = {
   rtp: "bg-emerald-500/10 text-emerald-600",
   pyq: "bg-violet-500/10 text-violet-600",
   mtp: "bg-amber-500/10 text-amber-600",
+  question: "bg-rose-500/10 text-rose-600",
 };
 
 interface BookmarksClientProps {
@@ -131,6 +136,20 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
     setNoteContent("");
   };
 
+  const handleDeleteBookmark = async (id: string) => {
+    // Optimistic UI update
+    setBookmarks(prev => prev.filter(b => b.id !== id));
+    await supabase.from("user_bookmarks").delete().eq("id", id);
+  };
+
+  const handleViewBookmark = (bm: BookmarkItem) => {
+    if (bm.type === "question" && bm.targetId) {
+      router.push(`/practice/mock-exams/${bm.targetId}`);
+    } else if (bm.url) {
+      window.open(bm.url, "_blank");
+    }
+  };
+
   const filteredBookmarks = bookmarks.filter((b) => {
     const matchesSearch =
       b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -189,7 +208,7 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
                   />
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {["all", "pdf", "rtp", "pyq", "mtp"].map((type) => (
+                  {["all", "pdf", "rtp", "pyq", "mtp", "question"].map((type) => (
                     <Button
                       key={type}
                       size="sm"
@@ -236,10 +255,32 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
                                     {typeLabel[bm.type]}
                                   </span>
                                 </div>
-                                <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground">
-                                  <span>{bm.source}</span>
-                                  <span>·</span>
-                                  <span>Saved {bm.savedAt}</span>
+                                <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                                  <div className="flex items-center gap-3">
+                                    <span>{bm.source}</span>
+                                    <span>·</span>
+                                    <span>Saved {bm.savedAt}</span>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost" 
+                                      className="h-7 w-7 text-accent" 
+                                      onClick={() => handleViewBookmark(bm)}
+                                      title="View"
+                                    >
+                                      {bm.type === "question" ? <Eye className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                                    </Button>
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost" 
+                                      className="h-7 w-7 text-destructive" 
+                                      onClick={() => handleDeleteBookmark(bm.id)}
+                                      title="Remove"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                             </CardContent>

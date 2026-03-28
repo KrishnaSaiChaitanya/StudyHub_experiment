@@ -240,7 +240,7 @@ const Home = () => {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}>
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-foreground">Upcoming Events</h2>
-              <Link href="/events" className="text-sm font-medium text-accent hover:underline" prefetch={false}>
+              <Link href="/study/events" className="text-sm font-medium text-accent hover:underline" prefetch={false}>
                 Calendar
               </Link>
             </div>

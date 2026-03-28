@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
@@ -45,12 +45,16 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState(0);
+  const [bookmarkedQs, setBookmarkedQs] = useState<Set<string>>(new Set());
+  const [userId, setUserId] = useState<string | null>(null);
 
   const supabase = createClient();
 
   useEffect(() => {
     const fetchExamData = async () => {
       try {
+        const userRes = await supabase.auth.getUser();
+        
         const { data: testData, error: testErr } = await supabase
           .from('tests')
           .select('*')
@@ -67,6 +71,20 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
 
         setTest(testData);
         setQuestions(qData || []);
+
+        if (userRes.data.user) {
+          const uid = userRes.data.user.id;
+          setUserId(uid);
+          const { data: bData } = await supabase
+            .from('user_bookmarks')
+            .select('question_id')
+            .eq('user_id', uid)
+            .not('question_id', 'is', null);
+          
+          if (bData) {
+            setBookmarkedQs(new Set(bData.map(b => b.question_id as string)));
+          }
+        }
       } catch (err: any) {
         console.error(err);
         toast.error("Failed to load exam data.");
@@ -106,12 +124,46 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
     }, 0);
   };
 
+  const toggleBookmark = async (qId: string) => {
+    if (!userId) {
+      toast.error("Please login to bookmark questions.");
+      return;
+    }
+
+    const isBookmarked = bookmarkedQs.has(qId);
+    
+    // Optimistic Update
+    setBookmarkedQs(prev => {
+      const next = new Set(prev);
+      if (isBookmarked) next.delete(qId);
+      else next.add(qId);
+      return next;
+    });
+
+    try {
+      if (isBookmarked) {
+        await supabase.from('user_bookmarks').delete().match({ user_id: userId, question_id: qId });
+        toast.success("Bookmark removed");
+      } else {
+        await supabase.from('user_bookmarks').insert({ user_id: userId, question_id: qId });
+        toast.success("Question bookmarked");
+      }
+    } catch (error) {
+       // Revert optimistic update
+       setBookmarkedQs(prev => {
+        const next = new Set(prev);
+        if (isBookmarked) next.add(qId);
+        else next.delete(qId);
+        return next;
+      });
+      toast.error("Failed to update bookmark.");
+    }
+  };
+
   const handleSubmit = async (isTimeout = false) => {
     if (submitting) return;
     setSubmitting(true);
     try {
-      const userRes = await supabase.auth.getUser();
-      const userId = userRes.data.user?.id;
       if (!userId) {
         toast.error("Please login to submit the exam.");
         return;
@@ -120,7 +172,7 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
       const currentScore = calculateScore();
       setScore(currentScore);
 
-      // Create test_attempts TODO
+      // Create test_attempts
       const { data: attempt, error: attemptErr } = await supabase
         .from('test_attempts')
         .insert({
@@ -256,7 +308,22 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
       <AnimatePresence mode="wait">
         <motion.div key={`question-${currentQ}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
           <Card className="border-border bg-card p-6">
-            <p className="text-xs font-medium text-accent">Question {currentQ + 1}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-accent">Question {currentQ + 1}</p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-accent"
+                onClick={() => toggleBookmark(q.id)}
+                title={bookmarkedQs.has(q.id) ? "Remove Bookmark" : "Bookmark Question"}
+              >
+                {bookmarkedQs.has(q.id) ? (
+                  <BookmarkCheck className="h-4 w-4 text-accent" />
+                ) : (
+                  <Bookmark className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
             <h3 className="mt-2 text-base font-semibold text-card-foreground leading-relaxed">{q.question_text}</h3>
             <RadioGroup
               className="mt-6 space-y-3"

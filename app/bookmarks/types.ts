@@ -10,7 +10,9 @@ export type DbNote = {
 export interface BookmarkItem {
   id: string;
   title: string;
-  type: "pdf" | "rtp" | "pyq" | "mtp";
+  type: "pdf" | "rtp" | "pyq" | "mtp" | "question";
   source: string;
   savedAt: string;
+  url?: string;
+  targetId?: string;
 }

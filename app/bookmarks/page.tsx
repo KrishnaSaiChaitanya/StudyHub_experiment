@@ -49,14 +49,15 @@ export default async function BookmarksPage() {
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
 
-  // Fetch Bookmarks (Join with Planners and Practice Papers)
+  // Fetch Bookmarks (Join with Planners, Practice Papers, and Questions)
   const { data: bookmarksData } = await supabase
     .from("user_bookmarks")
     .select(`
       id,
       created_at,
-      study_planners ( title, category ),
-      practice_papers ( title, subject, type )
+      study_planners ( title, category, pdf_url ),
+      practice_papers ( title, subject, type, pdf_url ),
+      questions ( id, question_text, test_id, tests ( name, category ) )
     `)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
@@ -68,15 +69,27 @@ export default async function BookmarksPage() {
         title: b.study_planners.title,
         type: "pdf" as const,
         source: formatSubjectName(b.study_planners.category),
-        savedAt: new Date(b.created_at).toISOString().split('T')[0]
+        savedAt: new Date(b.created_at).toISOString().split('T')[0],
+        url: b.study_planners.pdf_url
       };
     } else if (b.practice_papers) {
       return {
         id: b.id,
         title: b.practice_papers.title,
-        type: b.practice_papers.type,
+        type: b.practice_papers.type as "rtp" | "pyq" | "mtp",
         source: formatSubjectName(b.practice_papers.subject),
-        savedAt: new Date(b.created_at).toISOString().split('T')[0]
+        savedAt: new Date(b.created_at).toISOString().split('T')[0],
+        url: b.practice_papers.pdf_url
+      };
+    } else if (b.questions) {
+      const q = b.questions;
+      return {
+        id: b.id,
+        title: q.question_text.substring(0, 60) + (q.question_text.length > 60 ? "..." : ""),
+        type: "question" as const,
+        source: q.tests ? `${q.tests.name} (${formatSubjectName(q.tests.category)})` : "Mock Test",
+        savedAt: new Date(b.created_at).toISOString().split('T')[0],
+        targetId: q.test_id
       };
     }
     return null;
