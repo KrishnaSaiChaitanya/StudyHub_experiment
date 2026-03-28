@@ -196,7 +196,7 @@ const Navbar = () => {
           <LogoElement />
         </Link>
 
-        <div className="hidden items-center gap-1 md:flex mr-[-100px]">
+        <div className="hidden items-center gap-1 md:flex mr-[-120px]">
           {navItems.filter((i) => i.path === "/pricing" ? !isPro : true).map((item) => {
             const isActive = item.path === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.includes(item.path);
             return (

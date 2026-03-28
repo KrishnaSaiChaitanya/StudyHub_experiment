@@ -7,7 +7,16 @@ import Link from "next/link";
 
 const sections = [
   { icon: Users, title: "Group Study Sessions", description: "Join live study rooms with fellow aspirants. Collaborate on tough topics and stay motivated.", cta: "Find a Group", href: "/community/rooms", disabled: false },
-  { icon: Compass, title: "Community Library", description: "Contribute to the collective knowledge. Upload study planners, notes, or tips for others.", cta: "Upload Material", href: "/community/upload", disabled: false },
+  { 
+    icon: Compass, 
+    title: "Community Library", 
+    description: "Contribute to the collective knowledge. Upload study planners, notes, or tips for others.", 
+    actions: [
+      { label: "Upload Material", href: "/community/upload" },
+      { label: "View Library", href: "/study/planner?filter=community" }
+    ],
+    disabled: false 
+  },
   { icon: MessageCircle, title: "Discussion Forum", description: "Post questions, share insights, and get answers from peers and mentors.", cta: "Coming Soon", disabled: true },
   { icon: Compass, title: "Career Guidance", description: "Get mentorship from qualified CAs. Explore articleship and career paths.", cta: "Coming Soon", disabled: true },
   { icon: TrendingUp, title: "Leaderboard", description: "Compete on mock tests, study streaks, and community contributions.", cta: "Coming Soon", disabled: true },
@@ -37,15 +46,23 @@ const Community = () => (
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-card-foreground">{s.title}</h3>
                 <p className="mt-1.5 text-xs text-muted-foreground flex-1">{s.description}</p>
-                {s.disabled ? (
-                  <Button size="sm" className="mt-5 bg-accent text-accent-foreground opacity-50 cursor-not-allowed" disabled>
-                    {s.cta}
-                  </Button>
-                ) : (
-                  <Button size="sm" className="mt-5 bg-accent text-accent-foreground hover:bg-accent/90" asChild>
-                    <Link href={s.href!}>{s.cta}</Link>
-                  </Button>
-                )}
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {s.actions ? (
+                     s.actions.map(action => (
+                      <Button key={action.label} size="sm" className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+                        <Link href={action.href}>{action.label}</Link>
+                      </Button>
+                     ))
+                  ) : s.disabled ? (
+                    <Button size="sm" className="w-full bg-accent text-accent-foreground opacity-50 cursor-not-allowed" disabled>
+                      {s.cta}
+                    </Button>
+                  ) : (
+                    <Button size="sm" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+                      <Link href={s.href!}>{s.cta}</Link>
+                    </Button>
+                  )}
+                </div>
               </div>
             );
 

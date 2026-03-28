@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { SUBJECT_MAPPING, formatSubjectName } from "@/utils/subjects";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 export default function FacultyDashboard() {
   const supabase = createClient();
@@ -21,6 +22,8 @@ export default function FacultyDashboard() {
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [facultyToDelete, setFacultyToDelete] = useState<string | null>(null);
 
   // Form State
   const [name, setName] = useState("");
@@ -89,10 +92,17 @@ export default function FacultyDashboard() {
     setSaving(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure?")) return;
-    const { error } = await supabase.from('faculty').delete().eq('id', id);
+  const handleDelete = (id: string) => {
+    setFacultyToDelete(id);
+    setIsConfirmModalOpen(true);
+  };
+
+  const executeDelete = async () => {
+    if (!facultyToDelete) return;
+    const { error } = await supabase.from('faculty').delete().eq('id', facultyToDelete);
     if (!error) fetchData();
+    setFacultyToDelete(null);
+    setIsConfirmModalOpen(false);
   };
 
   return (
@@ -215,6 +225,14 @@ export default function FacultyDashboard() {
           </Table>
         )}
       </Card>
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={executeDelete}
+        title="Delete Faculty?"
+        description="Are you sure you want to delete this faculty profile? This action cannot be undone."
+        confirmText="Delete"
+      />
     </div>
   );
 }

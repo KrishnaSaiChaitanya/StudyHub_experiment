@@ -93,8 +93,8 @@ const Faculty = () => {
                     <h3 className="mt-3 text-sm font-semibold text-card-foreground">{f.name}</h3>
                     <p className="text-xs text-accent">{f.subject} · {f.level}</p>
                     <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-accent text-accent" />{f.rating}</span>
-                      <span>{f.students} students</span>
+                      {/* <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-accent text-accent" />{f.rating}</span>
+                      <span>{f.students} students</span> */}
                     </div>
                     <Button size="sm" variant="outline" className="mt-4 w-full text-[11px]" onClick={() => setSelectedFaculty(f)}>
                       <User className="mr-1 h-3 w-3" />Profile

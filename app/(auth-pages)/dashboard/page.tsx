@@ -48,7 +48,7 @@ const quickLinks = [
   { icon: BarChart3, label: "Progress Dashboard", path: "/study/progress", color: "bg-accent/10 text-accent" },
   { icon: FileText, label: "Mock Exams", path: "/practice/mock-exams", color: "bg-accent/10 text-accent" },
   { icon: Library, label: "Community Library", path: "/community", color: "bg-accent/10 text-accent" },
-  { icon: Users, label: "Group Study Rooms", path: "/community", color: "bg-accent/10 text-accent" },
+  { icon: Users, label: "Group Study Rooms", path: "/community/rooms", color: "bg-accent/10 text-accent" },
 ];
 
 // Utility: Format Enum to Title Case

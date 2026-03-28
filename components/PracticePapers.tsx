@@ -1,7 +1,8 @@
 "use client"
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, Bookmark, BookmarkCheck, Download, Eye, Filter, FileText, Loader2 } from "lucide-react";
+import { Search, Bookmark, BookmarkCheck, Download, Eye, Filter, FileText, Loader2, ArrowLeft } from "lucide-react";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client"; // Adjust based on your setup
 import { StudentLevel, SubjectCategory } from "@/utils/supabase/types";
+import { useRouter } from "next/navigation";
 
 
 type DbPaper = {
@@ -37,6 +39,7 @@ const formatSubjectName = (subject: string) => {
 
 const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
   const supabase = createClient();
+
   
   const [papers, setPapers] = useState<DbPaper[]>([]);
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
@@ -46,6 +49,8 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [paperToRemove, setPaperToRemove] = useState<{ id: string, title: string } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,16 +100,27 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
 
     const isCurrentlyBookmarked = bookmarked.has(id);
 
+    if (isCurrentlyBookmarked) {
+      setPaperToRemove({ id, title: paperTitle });
+      setIsConfirmModalOpen(true);
+      return;
+    }
+
+    // Adding bookmark
+    await executeBookmarkUpdate(id, paperTitle, false);
+  };
+
+  const executeBookmarkUpdate = async (id: string, paperTitle: string, isRemove: boolean) => {
     // Optimistic UI Update
     setBookmarked((prev) => {
       const next = new Set(prev);
-      if (isCurrentlyBookmarked) next.delete(id);
+      if (isRemove) next.delete(id);
       else next.add(id);
       return next;
     });
 
     try {
-      if (isCurrentlyBookmarked) {
+      if (isRemove) {
         // Remove bookmark
         await supabase
           .from("user_bookmarks")
@@ -124,11 +140,19 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
       // Revert optimistic update on failure
       setBookmarked((prev) => {
         const next = new Set(prev);
-        if (isCurrentlyBookmarked) next.add(id);
+        if (isRemove) next.add(id);
         else next.delete(id);
         return next;
       });
       toast({ title: "Error", description: "Failed to update bookmark.", variant: "destructive" });
+    }
+  };
+
+  const handleConfirmRemove = async () => {
+    if (paperToRemove) {
+      await executeBookmarkUpdate(paperToRemove.id, paperToRemove.title, true);
+      setPaperToRemove(null);
+      setIsConfirmModalOpen(false);
     }
   };
 
@@ -148,12 +172,15 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
     });
   }, [papers, search, subjectFilter, levelFilter]);
 
+
+
   return (
     <div className="container py-10">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+         
+          {/* <h1 className="text-3xl font-bold text-foreground">{title}</h1> */}
           {!isLoading && papers.length > 0 && (
             <Badge className="bg-accent/15 text-accent border-accent/30 text-xs">
               {papers.length} Papers
@@ -285,6 +312,14 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
           )}
         </div>
       </ScrollArea>
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleConfirmRemove}
+        title="Remove Bookmark?"
+        description={`Are you sure you want to remove the bookmark for "${paperToRemove?.title}"?`}
+        confirmText="Remove"
+      />
     </div>
   );
 };

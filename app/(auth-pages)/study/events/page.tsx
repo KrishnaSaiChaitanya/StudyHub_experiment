@@ -1,19 +1,17 @@
 "use client"
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, X, Clock } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/utils/supabase/client"; // Adjust to your Supabase client path
-import { StudentLevel, SubjectCategory } from "@/utils/supabase/types";
 import { useRouter } from "next/navigation";
 
 
 type DbCalendarEvent = {
   id: string;
   title: string;
-  subject: SubjectCategory;
-  level: StudentLevel;
+  category: "Exam" | "Mocks" | "Deadlines" | "Sessions";
   type: string;
   description: string;
   created_at: string;
@@ -25,31 +23,15 @@ type DbCalendarEvent = {
 
 
 
-// Map levels to their respective subjects to filter DB queries easily
-const LEVEL_SUBJECTS: Record<StudentLevel, SubjectCategory[]> = {
-  foundation: [
-    'principles_and_practice_of_accounting', 'business_laws', 
-    'business_math_logical_reasoning_and_statistics', 'business_economics'
-  ],
-  intermediate: [
-    'advanced_accounting', 'corporate_and_other_laws', 'taxation', 
-    'cost_and_management_accounting', 'auditing_and_ethics', 'financial_management_and_strategic_management'
-  ],
-  final: [
-    'financial_reporting', 'advanced_financial_management', 'advanced_auditing_assurance_and_professional_ethics', 
-    'direct_tax_laws', 'indirect_tax_laws', 'integrated_business_solutions'
-  ]
-};
+const EVENT_CATEGORIES = ["Exam", "Mocks", "Deadlines", "Sessions"] as const;
+type EventCategory = typeof EVENT_CATEGORIES[number];
 
-// Generate a color palette for subjects
-const SUBJECT_COLORS = [
-  "bg-blue-500/15 text-blue-600 border-blue-500/30 ring-blue-500",
-  "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 ring-emerald-500",
-  "bg-purple-500/15 text-purple-600 border-purple-500/30 ring-purple-500",
-  "bg-orange-500/15 text-orange-600 border-orange-500/30 ring-orange-500",
-  "bg-rose-500/15 text-rose-600 border-rose-500/30 ring-rose-500",
-  "bg-cyan-500/15 text-cyan-600 border-cyan-500/30 ring-cyan-500",
-];
+const CATEGORY_COLORS: Record<EventCategory, string> = {
+  "Exam": "bg-rose-500/15 text-rose-600 border-rose-500/30 ring-rose-500 shadow-rose-100",
+  "Mocks": "bg-blue-500/15 text-blue-600 border-blue-500/30 ring-blue-500 shadow-blue-100",
+  "Deadlines": "bg-orange-500/15 text-orange-600 border-orange-500/30 ring-orange-500 shadow-orange-100",
+  "Sessions": "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 ring-emerald-500 shadow-emerald-100",
+};
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -63,10 +45,9 @@ const ExamCalendarView = () => {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date()); 
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
-  const [filterSubject, setFilterSubject] = useState<SubjectCategory | null>(null);
+  const [filterCategory, setFilterCategory] = useState<EventCategory | null>(null);
   
   const [events, setEvents] = useState<DbCalendarEvent[]>([]);
-  const [userLevel, setUserLevel] = useState<StudentLevel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Use a ref to handle closing the popup when clicking outside
@@ -75,26 +56,9 @@ const ExamCalendarView = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Get user profile to determine their level
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("student_type")
-          .eq("id", user.id)
-          .single();
-
-        const level = profile?.student_type as StudentLevel || "foundation"; // Fallback to foundation
-        setUserLevel(level);
-
-        const allowedSubjects = LEVEL_SUBJECTS[level];
-
-        // 2. Fetch events matching those subjects
         const { data: calendarEvents } = await supabase
           .from("calendar_events")
-          .select("*")
-          .in("subject", allowedSubjects);
+          .select("*");
 
         if (calendarEvents) {
           setEvents(calendarEvents);
@@ -123,20 +87,12 @@ const ExamCalendarView = () => {
     setSelectedDate(null);
   };
 
-  // Filter events for the current month and selected subject filter
+  // Filter events for the current month and selected category filter
   const monthEvents = events.filter(
-    (e) => e.event_month === month && e.event_year === year && (!filterSubject || e.subject === filterSubject)
+    (e) => e.event_month === month && e.event_year === year && (!filterCategory || e.category === filterCategory)
   );
 
   const getEventsForDay = (day: number) => monthEvents.filter((e) => e.event_date === day);
-
-  // Dynamic config object for subject colors
-  const activeSubjects = userLevel ? LEVEL_SUBJECTS[userLevel] : [];
-  const getSubjectColor = (subject: SubjectCategory | null) => {
-    if (!subject) return SUBJECT_COLORS[0];
-    const index = activeSubjects.indexOf(subject);
-    return SUBJECT_COLORS[index % SUBJECT_COLORS.length];
-  };
 
   const onBack = () => {
     router.push("/study");
@@ -179,26 +135,25 @@ const ExamCalendarView = () => {
 
      
 
-      {/* Dynamic Subject Filters */}
+      {/* Category Filters */}
       <div className="mb-6 flex flex-wrap gap-2">
         <Button
           size="sm"
-          variant={filterSubject === null ? "default" : "outline"}
-          onClick={() => setFilterSubject(null)}
-          className={filterSubject === null ? "bg-accent text-accent-foreground" : ""}
+          variant={filterCategory === null ? "default" : "outline"}
+          onClick={() => setFilterCategory(null)}
+          className={filterCategory === null ? "bg-accent text-accent-foreground" : ""}
         >
-          All Subjects
+          All Events
         </Button>
-        {activeSubjects.map((subject, idx) => (
+        {EVENT_CATEGORIES.map((cat) => (
           <Button
-            key={subject}
+            key={cat}
             size="sm"
-            variant={filterSubject === subject ? "default" : "outline"}
-            onClick={() => setFilterSubject(filterSubject === subject ? null : subject)}
-            className={filterSubject === subject ? "bg-accent" : ""}
+            variant={filterCategory === cat ? "default" : "outline"}
+            onClick={() => setFilterCategory(filterCategory === cat ? null : cat)}
+            className={filterCategory === cat ? "bg-accent" : ""}
           >
-            <BookOpen className="mr-1.5 h-3.5 w-3.5" />
-            {formatSubjectName(subject)}
+            {cat}
           </Button>
         ))}
       </div>
@@ -247,8 +202,7 @@ const ExamCalendarView = () => {
                      {dayEvents.length > 0 && (
   <div className="mt-1 flex w-full flex-col gap-1 px-1">
     {dayEvents.slice(0, 3).map((ev) => {
-      const colorClasses = getSubjectColor(ev.subject)
-      const bgColor = colorClasses.split(' ').find(c => c.startsWith('bg-')) || 'bg-primary'
+      const categoryColor = CATEGORY_COLORS[ev.category] || "bg-primary";
 
       return (
         <div
@@ -293,9 +247,9 @@ const ExamCalendarView = () => {
                               <p className="text-xs text-muted-foreground">No events scheduled.</p>
                             ) : (
                               dayEvents.map((ev) => (
-                                <div key={ev.id} className={`rounded-lg border p-2.5 ${getSubjectColor(ev.subject)}`}>
+                                <div key={ev.id} className={`rounded-lg border p-2.5 ${CATEGORY_COLORS[ev.category] || "bg-secondary text-secondary-foreground"}`}>
                                   <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
-                                    {ev.subject ? formatSubjectName(ev.subject) : "General"}
+                                    {ev.category}
                                   </span>
                                   <p className="mt-0.5 text-sm font-medium leading-tight">{ev.title}</p>
                                   {ev.event_time && (
@@ -332,13 +286,13 @@ const ExamCalendarView = () => {
                 .slice(0, 5)
                 .map((ev) => (
                 <div key={ev.id} className="flex items-start gap-3">
-                  <div className={`flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg border ${getSubjectColor(ev.subject)}`}>
+                  <div className={`flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg border ${CATEGORY_COLORS[ev.category] || ""}`}>
                     <span className="text-xs font-bold leading-none">{ev.event_date}</span>
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-xs font-medium text-foreground">{ev.title}</p>
                     <p className="truncate text-[10px] text-muted-foreground">
-                      {ev.subject ? formatSubjectName(ev.subject) : "General"}
+                      {ev.category}
                     </p>
                   </div>
                 </div>

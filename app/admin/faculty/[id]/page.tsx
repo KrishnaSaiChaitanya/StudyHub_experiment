@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 export default function FacultyDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -36,6 +37,7 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
   const [courseSessions, setCourseSessions] = useState("");
   const [courseHours, setCourseHours] = useState("");
   const [coursePrice, setCoursePrice] = useState("");
+  const [courseLink, setCourseLink] = useState("");
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
 
   // Planners state
@@ -43,6 +45,9 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, type: 'video' | 'course' | 'planner', title?: string } | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -109,8 +114,12 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
     setSaving(false);
   };
 
-  const handleDeleteVideo = async (vid: string) => {
-    if(!confirm("Delete this video?")) return;
+  const handleDeleteVideo = (vid: string) => {
+    setItemToDelete({ id: vid, type: 'video' });
+    setIsConfirmModalOpen(true);
+  };
+
+  const executeDeleteVideo = async (vid: string) => {
     await supabase.from('faculty_videos').delete().eq('id', vid);
     fetchData();
   };
@@ -121,6 +130,7 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
     setCourseSessions(c.sessions_count ? c.sessions_count.toString() : "");
     setCourseHours(c.hours_count ? c.hours_count.toString() : "");
     setCoursePrice(c.price ? c.price.toString() : "");
+    setCourseLink(c.course_link || "");
     setEditingCourseId(c.id);
     setShowAddCourse(true);
   };
@@ -134,6 +144,7 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
       sessions_count: courseSessions ? parseInt(courseSessions) : 0,
       hours_count: courseHours ? parseInt(courseHours) : 0,
       price: coursePrice ? parseFloat(coursePrice) : 0,
+      course_link: courseLink,
     };
     
     let error;
@@ -149,7 +160,7 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
       toast({ title: "Error saving course", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Course saved successfully!" });
-      setCourseName(""); setCourseSessions(""); setCourseHours(""); setCoursePrice("");
+      setCourseName(""); setCourseSessions(""); setCourseHours(""); setCoursePrice(""); setCourseLink("");
       setEditingCourseId(null);
       setShowAddCourse(false);
       fetchData();
@@ -157,8 +168,12 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
     setSaving(false);
   };
 
-  const handleDeleteCourse = async (cid: string) => {
-    if(!confirm("Delete this course?")) return;
+  const handleDeleteCourse = (cid: string) => {
+    setItemToDelete({ id: cid, type: 'course' });
+    setIsConfirmModalOpen(true);
+  };
+
+  const executeDeleteCourse = async (cid: string) => {
     await supabase.from('faculty_courses').delete().eq('id', cid);
     fetchData();
   };
@@ -179,10 +194,29 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
     setSaving(false);
   };
 
-  const handleUnlinkPlanner = async (pid: string) => {
-    if(!confirm("Unlink this planner?")) return;
+  const handleUnlinkPlanner = (pid: string) => {
+    setItemToDelete({ id: pid, type: 'planner' });
+    setIsConfirmModalOpen(true);
+  };
+
+  const executeUnlinkPlanner = async (pid: string) => {
     await supabase.from('study_planners').update({ faculty_id: null }).eq('id', pid);
     fetchData();
+  };
+
+  const handleConfirmAction = async () => {
+    if (!itemToDelete) return;
+    
+    if (itemToDelete.type === 'video') {
+      await executeDeleteVideo(itemToDelete.id);
+    } else if (itemToDelete.type === 'course') {
+      await executeDeleteCourse(itemToDelete.id);
+    } else if (itemToDelete.type === 'planner') {
+      await executeUnlinkPlanner(itemToDelete.id);
+    }
+    
+    setItemToDelete(null);
+    setIsConfirmModalOpen(false);
   };
 
 
@@ -310,6 +344,10 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
                     <label className="text-sm font-medium">Price ($ or ₹)</label>
                     <Input type="number" step="0.01" required value={coursePrice} onChange={e => setCoursePrice(e.target.value)} />
                   </div>
+                  <div className="space-y-2 col-span-full">
+                    <label className="text-sm font-medium">Course Link (URL)</label>
+                    <Input type="url" value={courseLink} onChange={e => setCourseLink(e.target.value)} placeholder="https://..." />
+                  </div>
                   <div className="col-span-full pt-2">
                     <Button type="submit" disabled={saving}>
                       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Course"}
@@ -327,7 +365,8 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
                   <TableHead>Course Name</TableHead>
                   <TableHead>Sessions</TableHead>
                   <TableHead>Hours</TableHead>
-                  <TableHead>Price</TableHead>
+                   <TableHead>Price</TableHead>
+                  <TableHead>URL</TableHead>
                   <TableHead className="w-[100px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -341,6 +380,15 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
                     <TableCell>{c.sessions_count}</TableCell>
                     <TableCell>{c.hours_count}h</TableCell>
                     <TableCell>₹{c.price}</TableCell>
+                    <TableCell>
+                      {c.course_link ? (
+                        <a href={c.course_link} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate max-w-[150px] block">
+                          View Link
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">No link</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end">
                         <Button variant="ghost" size="icon" onClick={() => handleEditCourse(c)}><Pencil className="h-4 w-4" /></Button>
@@ -427,6 +475,14 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
         </TabsContent>
         
       </Tabs>
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleConfirmAction}
+        title={`Confirm ${itemToDelete?.type === 'planner' ? 'Unlink' : 'Delete'}?`}
+        description={`Are you sure you want to ${itemToDelete?.type === 'planner' ? 'unlink this planner' : `delete this ${itemToDelete?.type}`}?`}
+        confirmText={itemToDelete?.type === 'planner' ? 'Unlink' : 'Delete'}
+      />
     </div>
   );
 }

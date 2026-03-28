@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
@@ -47,6 +48,8 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
   const [score, setScore] = useState(0);
   const [bookmarkedQs, setBookmarkedQs] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [qToRemove, setQToRemove] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -132,16 +135,26 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
 
     const isBookmarked = bookmarkedQs.has(qId);
     
+    if (isBookmarked) {
+      setQToRemove(qId);
+      setIsConfirmModalOpen(true);
+      return;
+    }
+
+    await executeBookmarkUpdate(qId, false);
+  };
+
+  const executeBookmarkUpdate = async (qId: string, isRemove: boolean) => {
     // Optimistic Update
     setBookmarkedQs(prev => {
       const next = new Set(prev);
-      if (isBookmarked) next.delete(qId);
+      if (isRemove) next.delete(qId);
       else next.add(qId);
       return next;
     });
 
     try {
-      if (isBookmarked) {
+      if (isRemove) {
         await supabase.from('user_bookmarks').delete().match({ user_id: userId, question_id: qId });
         toast.success("Bookmark removed");
       } else {
@@ -152,11 +165,19 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
        // Revert optimistic update
        setBookmarkedQs(prev => {
         const next = new Set(prev);
-        if (isBookmarked) next.add(qId);
+        if (isRemove) next.add(qId);
         else next.delete(qId);
         return next;
       });
       toast.error("Failed to update bookmark.");
+    }
+  };
+
+  const handleConfirmRemoveQ = async () => {
+    if (qToRemove) {
+      await executeBookmarkUpdate(qToRemove, true);
+      setQToRemove(null);
+      setIsConfirmModalOpen(false);
     }
   };
 
@@ -377,6 +398,14 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
           </button>
         ))}
       </div>
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleConfirmRemoveQ}
+        title="Remove Bookmark?"
+        description="Are you sure you want to remove this question from your bookmarks?"
+        confirmText="Remove"
+      />
     </div>
   );
 };

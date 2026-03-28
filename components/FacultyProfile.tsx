@@ -172,32 +172,59 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
           )}
 
           {/* Lectures to Enroll */}
-          {courses.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-8">
-              <h2 className="mb-4 text-lg font-semibold text-card-foreground">Lectures & Courses</h2>
-              <div className="space-y-3">
-                {courses.map((course) => (
-                  <Card key={course.id} className="flex flex-col gap-4 border-border bg-card p-5 sm:flex-row sm:items-center">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold text-card-foreground">{course.name}</h3>
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-                        <span>{course.sessions_count} Sessions</span>
-                        <span>{course.hours_count} Hours</span>
-                        <span>{course.enrolled_count} Enrolled</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-accent">₹{course.price}</span>
-                      <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">Enroll Now</Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </motion.div>
-          )}
-          
+      {courses.length > 0 && (
+  <motion.div
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.3 }}
+    className="mt-8"
+  >
+    <h2 className="mb-4 text-lg font-semibold text-card-foreground">
+      Lectures & Courses
+    </h2>
+    
+    <div className="space-y-4">
+      {courses.map((course) => (
+        <div
+          key={course.id}
+          className="flex flex-col justify-between gap-4 rounded-[10px] border-[3px] border-border bg-card p-4 sm:flex-row sm:items-start lg:p-4"
+        >
+          {/* Left Section: Title & Badges */}
+          <div className="flex flex-col gap-4">
+            <h3 className=" text-base font-semibold text-card-foreground">
+              {course.name}
+            </h3>
+            
+            <div className="flex flex-wrap gap-3">
+              <span className="flex h-6 min-w-[80px] items-center justify-center rounded-lg bg-secondary/50 px-3  text-[10px] font-bold text-muted-foreground">
+                {course.hours_count} Hours
+              </span>
+              <span className="flex h-6 min-w-[80px] items-center justify-center rounded-lg bg-secondary/50 px-3  text-[10px] font-bold text-muted-foreground">
+                {course.sessions_count} Sessions
+              </span>
+              <span className="flex h-6 min-w-[80px] items-center justify-center rounded-lg bg-secondary/50 px-3  text-[10px] font-bold text-muted-foreground">
+                {course.enrolled_count} Enrolled
+              </span>
+            </div>
+          </div>
+
+          {/* Right Section: Button & Price */}
+          <div className="flex shrink-0 flex-row items-center gap-3 sm:flex-col sm:items-end sm:gap-4">
+            <Button
+              size="sm"
+              className="h-7 w-24 rounded-md border border-transparent bg-accent  text-xs font-medium text-accent-foreground hover:bg-accent/90"
+            >
+              Enroll Now
+            </Button>
+            <span className="flex h-6 min-w-[80px] items-center justify-center rounded-lg bg-secondary/50 px-3  text-[10px] font-bold text-muted-foreground">
+              ₹ {course.price}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  </motion.div>
+)}
           {planners.length === 0 && videos.length === 0 && courses.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground mt-8 border rounded-lg border-dashed">
               <BookOpen className="h-8 w-8 mb-3 opacity-20" />

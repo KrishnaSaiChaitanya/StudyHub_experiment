@@ -9,6 +9,7 @@ export type TodoStatus = 'pending' | 'completed';
 export type McqOption = 'A' | 'B' | 'C' | 'D';
 
 export type SubjectCategory = 
+  | 'general'
   // Foundation
   | 'principles_and_practice_of_accounting'
   | 'business_laws'
@@ -166,6 +167,12 @@ export interface TestAttemptAnswer {
   created_at: string;
 }
 
+export interface SubjectMeetLink {
+  subject_id: string; // From SubjectCategory
+  meet_url: string;
+  updated_at: string;
+}
+
 // ==========================================
 // 3. SUPABASE DATABASE INTERFACE
 // ==========================================
@@ -188,6 +195,7 @@ export interface Database {
       questions: { Row: Question; Insert: Partial<Question>; Update: Partial<Question> };
       test_attempts: { Row: TestAttempt; Insert: Partial<TestAttempt>; Update: Partial<TestAttempt> };
       test_attempt_answers: { Row: TestAttemptAnswer; Insert: Partial<TestAttemptAnswer>; Update: Partial<TestAttemptAnswer> };
+      subject_meet_links: { Row: SubjectMeetLink; Insert: Partial<SubjectMeetLink>; Update: Partial<SubjectMeetLink> };
     };
     Enums: {
       student_level: StudentLevel;

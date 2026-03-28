@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { ProFeatureLock } from "@/components/ProFeatureLock";
 import { createClient } from "@/utils/supabase/client";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { BookmarkItem, DbNote } from "./types";
 import { useRouter } from "next/navigation";
 
@@ -81,6 +82,9 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
 
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, type: 'note' | 'bookmark', title?: string } | null>(null);
+
   const handleSaveNote = async () => {
     if (!noteTitle.trim() || !userId) return;
     setIsSaving(true);
@@ -123,7 +127,12 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
     setNewNote(true);
   };
 
-  const handleDeleteNote = async (id: string) => {
+  const handleDeleteNote = (id: string, title: string) => {
+    setItemToDelete({ id, type: 'note', title });
+    setIsConfirmModalOpen(true);
+  };
+
+  const executeDeleteNote = async (id: string) => {
     // Optimistic UI update
     setNotes(prev => prev.filter(n => n.id !== id));
     await supabase.from("notes").delete().eq("id", id);
@@ -136,10 +145,27 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
     setNoteContent("");
   };
 
-  const handleDeleteBookmark = async (id: string) => {
+  const handleDeleteBookmark = (id: string, title: string) => {
+    setItemToDelete({ id, type: 'bookmark', title });
+    setIsConfirmModalOpen(true);
+  };
+
+  const executeDeleteBookmark = async (id: string) => {
     // Optimistic UI update
     setBookmarks(prev => prev.filter(b => b.id !== id));
     await supabase.from("user_bookmarks").delete().eq("id", id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (itemToDelete) {
+      if (itemToDelete.type === 'note') {
+        await executeDeleteNote(itemToDelete.id);
+      } else {
+        await executeDeleteBookmark(itemToDelete.id);
+      }
+      setItemToDelete(null);
+      setIsConfirmModalOpen(false);
+    }
   };
 
   const handleViewBookmark = (bm: BookmarkItem) => {
@@ -275,7 +301,7 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
                                       size="icon" 
                                       variant="ghost" 
                                       className="h-7 w-7 text-destructive" 
-                                      onClick={() => handleDeleteBookmark(bm.id)}
+                                      onClick={() => handleDeleteBookmark(bm.id, bm.title)}
                                       title="Remove"
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
@@ -363,7 +389,7 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
                                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditNote(note)}>
                                   <Edit3 className="h-3.5 w-3.5" />
                                 </Button>
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDeleteNote(note.id)}>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDeleteNote(note.id, note.title)}>
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
@@ -386,6 +412,14 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
         </ProFeatureLock>
       </section>
       <Footer />
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title={`Remove ${itemToDelete?.type === 'note' ? 'Note' : 'Bookmark'}?`}
+        description={`Are you sure you want to remove this ${itemToDelete?.type}? This action cannot be undone.`}
+        confirmText="Remove"
+      />
     </div>
   );
 };

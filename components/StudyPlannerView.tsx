@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import { useStudent } from "./StudentTypeProvider";
 import { formatSubjectName } from "@/utils/subjects";
+import { useSearchParams } from "next/navigation";
+import { ConfirmModal } from "./ConfirmModal";
 
 interface PlannerType {
   id: string;
@@ -17,6 +19,7 @@ interface PlannerType {
   rating: number;
   pdf_url: string;
   faculty_name: string;
+  is_community: boolean;
 }
 
 interface Props {
@@ -27,6 +30,9 @@ const StudyPlannerView = ({ onBack }: Props) => {
   const { subjects, loading: studentLoading } = useStudent();
   const supabase = createClient();
   
+  const searchParams = useSearchParams();
+  const filterFromUrl = searchParams.get('filter');
+
   const [planners, setPlanners] = useState<PlannerType[]>([]);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,8 +41,14 @@ const StudyPlannerView = ({ onBack }: Props) => {
   const [showFilters, setShowFilters] = useState(false);
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState("All");
+  const [sourceFilter, setSourceFilter] = useState(
+    filterFromUrl === 'community' ? 'Community Library' : 
+    filterFromUrl === 'faculty' ? 'Faculty Uploads' : 'All'
+  );
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [plannerToUnbookmark, setPlannerToUnbookmark] = useState<string | null>(null);
 
   useEffect(() => {
     if (!studentLoading) {
@@ -66,10 +78,11 @@ const StudyPlannerView = ({ onBack }: Props) => {
       .from('study_planners')
       .select(`
         id, title, category, planner_date, pages, downloads, rating, pdf_url,
-        faculty_id,
+        faculty_id, is_community,
         faculty:faculty_id ( name )
       `)
       .in('category', subjects);
+console.log(plannersData, "data");
 
 
     if (plannersData) {
@@ -83,6 +96,7 @@ const StudyPlannerView = ({ onBack }: Props) => {
         rating: p.rating || 0,
         pdf_url: p.pdf_url,
         faculty_name: p.faculty?.name || 'Unknown Faculty',
+        is_community: p.is_community || false,
       }));
       setPlanners(formattedPlanners);
     }
@@ -95,12 +109,8 @@ const StudyPlannerView = ({ onBack }: Props) => {
     
     const isBookmarked = bookmarks.includes(id);
     if (isBookmarked) {
-      setBookmarks(prev => prev.filter(b => b !== id));
-      await supabase
-        .from('user_bookmarks')
-        .delete()
-        .eq('user_id', userId)
-        .eq('planner_id', id);
+      setPlannerToUnbookmark(id);
+      setIsConfirmModalOpen(true);
     } else {
       setBookmarks(prev => [...prev, id]);
       await supabase
@@ -109,14 +119,34 @@ const StudyPlannerView = ({ onBack }: Props) => {
     }
   };
 
+  const confirmUnbookmark = async () => {
+    if (!userId || !plannerToUnbookmark) return;
+
+    setBookmarks(prev => prev.filter(b => b !== plannerToUnbookmark));
+    await supabase
+      .from('user_bookmarks')
+      .delete()
+      .eq('user_id', userId)
+      .eq('planner_id', plannerToUnbookmark);
+    
+    setPlannerToUnbookmark(null);
+  };
+
   const filtered = planners.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.faculty_name.toLowerCase().includes(search.toLowerCase());
     const matchesSubject = selectedSubject === "All" || p.category === selectedSubject;
     const matchesBookmark = !showBookmarksOnly || bookmarks.includes(p.id);
-    return matchesSearch && matchesSubject && matchesBookmark;
+    
+    const matchesSource = 
+      sourceFilter === "All" ? true :
+      sourceFilter === "Community Library" ? p.is_community :
+      !p.is_community; // Faculty Uploads
+
+    return matchesSearch && matchesSubject && matchesBookmark && matchesSource;
   });
 
   const subjectOptions = ["All", ...subjects];
+  const sourceOptions = ["All", "Community Library", "Faculty Uploads"];
 
   return (
     <div>
@@ -187,19 +217,40 @@ const StudyPlannerView = ({ onBack }: Props) => {
               exit={{ opacity: 0, height: 0 }}
               className="mt-4 flex flex-wrap gap-2 overflow-hidden"
             >
-              {subjectOptions.map(sub => (
-                <button
-                  key={sub}
-                  onClick={() => setSelectedSubject(sub)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
-                    selectedSubject === sub
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {sub === "All" ? sub : formatSubjectName(sub as any)}
-                </button>
-              ))}
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-2">
+                  <span className="w-full text-[10px] uppercase font-bold text-muted-foreground/70 mb-1">Subjects</span>
+                  {subjectOptions.map(sub => (
+                    <button
+                      key={sub}
+                      onClick={() => setSelectedSubject(sub)}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
+                        selectedSubject === sub
+                          ? "bg-accent text-accent-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      {sub === "All" ? sub : formatSubjectName(sub as any)}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="w-full text-[10px] uppercase font-bold text-muted-foreground/70 mb-1">Source</span>
+                  {sourceOptions.map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => setSourceFilter(opt)}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
+                        sourceFilter === opt
+                          ? "bg-accent text-accent-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -228,17 +279,28 @@ const StudyPlannerView = ({ onBack }: Props) => {
                     <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-destructive/10">
                       <FileText className="h-5 w-5 text-destructive" />
                     </div>
-                    <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-medium text-accent truncate max-w-[150px]">{formatSubjectName(planner.category as any)}</span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-medium text-accent">
+                        {formatSubjectName(planner.category as any)}
+                      </span>
+                      {planner.is_community && (
+                        <span className="rounded-full bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-medium text-blue-500">
+                          Community
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Title */}
                   <h3 className="mt-4 text-sm font-semibold text-card-foreground leading-snug line-clamp-2">{planner.title}</h3>
 
                   {/* Meta */}
-                  <div className="mt-3 space-y-1.5 flex-1 line-clamp-3">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <User className="h-3 w-3" /> {planner.faculty_name}
-                    </div>
+                  <div className="mt-3 space-y-1.5 flex-1">
+                    {!planner.is_community && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <User className="h-3 w-3" /> {planner.faculty_name}
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3" /> {new Date(planner.planner_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                     </div>
@@ -274,6 +336,15 @@ const StudyPlannerView = ({ onBack }: Props) => {
           </>
         )}
       </section>
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={confirmUnbookmark}
+        title="Remove Bookmark?"
+        description="Are you sure you want to remove this planner from your bookmarks?"
+        confirmText="Remove"
+      />
     </div>
   );
 };

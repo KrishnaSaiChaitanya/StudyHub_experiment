@@ -12,7 +12,7 @@ import { createClient } from "@/utils/supabase/client";
 import { SubjectCategory } from "@/utils/supabase/types";
 import { useToast } from "@/components/ui/use-toast";
 import { useStudent } from "./StudentTypeProvider";
-import { formatSubjectName } from "@/utils/subjects";
+import { formatSubjectName, getSubjectAbbreviation } from "@/utils/subjects";
 import { ProFeatureLock } from "@/components/ProFeatureLock";
 import { useSubscription } from "@/components/SubscriptionProvider";
 
@@ -206,7 +206,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
   const addTodo = async () => {
     if (!newTodo.trim() || !userId) return;
     setIsAddingTodo(true);
-    const category = todoFilter === "All" ? subjects[0] : (todoFilter as SubjectCategory);
+    const category = todoFilter === "All" ? 'general' as SubjectCategory : (todoFilter as SubjectCategory);
     
     const { data, error } = await supabase.from('todos').insert({
       user_id: userId,
@@ -386,7 +386,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <p className="text-3xl font-mono font-bold">{formatTime(seconds)}</p>
-                    <p className="text-xs text-muted-foreground mt-1 truncate max-w-[120px]">{getSubjectLabel(activeSubject)}</p>
+                    <p className="text-xs text-muted-foreground mt-1 truncate max-w-[120px]">{getSubjectAbbreviation(activeSubject)}</p>
                   </div>
                 </div>
 
@@ -437,7 +437,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
                           className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: getSubjectColor(session.category) }}
                         />
-                        <span className="text-xs font-medium">{getSubjectLabel(session.category)}</span>
+                        <span className="text-xs font-medium">{getSubjectAbbreviation(session.category)}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] text-muted-foreground">
@@ -543,7 +543,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
                           color: getSubjectColor(todo.category),
                         }}
                       >
-                        {getSubjectLabel(todo.category)}
+                        {getSubjectAbbreviation(todo.category)}
                       </span>
                     </div>
                     <button

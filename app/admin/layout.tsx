@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Users, FileText, LayoutDashboard, Mail, CalendarDays } from "lucide-react";
+import { BookOpen, Users, FileText, LayoutDashboard, Mail, CalendarDays, Video } from "lucide-react";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/admin/exam-dates", exact: false, icon: CalendarDays, label: "Exam Dates" },
   { href: "/admin/community-submissions", exact: false, icon: Users, label: "Community Submittions" },
   { href: "/admin/faculty", exact: false, icon: Users, label: "Faculty" },
+  { href: "/admin/rooms", exact: false, icon: Video, label: "Study Rooms" },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
