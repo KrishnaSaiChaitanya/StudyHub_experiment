@@ -231,7 +231,7 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
           <Button variant="outline" size="icon"><ChevronLeft className="h-4 w-4" /></Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{faculty?.name || "Faculty Details"}</h1>
+          <h1 className="text-2xl font-bold text-foreground">{faculty?.name || "Faculty Details"}</h1>
           <p className="text-muted-foreground mt-1 text-sm">Manage extensive info seamlessly.</p>
         </div>
         <div className="ml-auto flex gap-2">

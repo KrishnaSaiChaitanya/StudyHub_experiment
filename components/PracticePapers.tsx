@@ -180,7 +180,7 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <div className="flex items-center gap-3">
          
-          {/* <h1 className="text-3xl font-bold text-foreground">{title}</h1> */}
+          {/* <h1 className="text-2xl font-bold text-foreground">{title}</h1> */}
           {!isLoading && papers.length > 0 && (
             <Badge className="bg-accent/15 text-accent border-accent/30 text-xs">
               {papers.length} Papers

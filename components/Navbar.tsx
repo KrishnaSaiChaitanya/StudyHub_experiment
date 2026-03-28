@@ -185,7 +185,7 @@ const Navbar = () => {
     </Popover>
   );
 
-  if (authRoutes.includes(pathname)) {
+  if (authRoutes.includes(pathname) || pathname.startsWith("/admin")) {
     return null;
   }
 
