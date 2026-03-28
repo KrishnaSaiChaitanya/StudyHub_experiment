@@ -83,7 +83,8 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
               <h1 className="text-2xl font-bold text-card-foreground">{faculty.name}</h1>
               <p className="mt-1 text-sm text-accent">{faculty.subject} · {faculty.level}</p>
               <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-accent text-accent" />{faculty.rating} Rating</span>
+                {/* <span className="flex items-center gap-1"> */}
+                  {/* <Star className="h-3.5 w-3.5 fill-accent text-accent" />{faculty.rating} Rating</span> */}
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{faculty.students} Students</span>
                 <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />10+ Years Exp</span>
               </div>

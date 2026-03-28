@@ -476,7 +476,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
               >
                 All
               </button>
-              {dynamicSubjects.map((s) => (
+              {[ {value: 'general', label: 'General'}, ...dynamicSubjects].map((s) => (
                 <button
                   key={s.value}
                   onClick={() => setTodoFilter(s.value)}
