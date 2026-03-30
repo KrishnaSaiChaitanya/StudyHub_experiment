@@ -12,6 +12,7 @@ interface FacultyData {
   rating: number;
   students: string;
   level: string;
+  profile_picture?: string | null;
 }
 
 interface FacultyProfileProps {
@@ -76,8 +77,12 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <Card className="border-border bg-card p-6">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-accent text-2xl font-bold text-accent-foreground">
-              {initials}
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-2xl font-bold text-accent-foreground">
+              {faculty.profile_picture ? (
+                <img src={faculty.profile_picture} alt={faculty.name} className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
             </div>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-card-foreground">{faculty.name}</h1>
@@ -89,8 +94,8 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
                 <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />10+ Years Exp</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-accent" />{faculty.name.split(" ")[1]?.toLowerCase() || 'faculty'}@castudy.in</span>
-                <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-accent" />+91 98XXX XXXXX</span>
+                <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-accent" />{faculty.name.split(" ")[1]?.toLowerCase() || 'XXXX'}@castudy.in</span>
+                <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-accent" />+91 XXXXX XXXXX</span>
                 <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-accent" />New Delhi</span>
                 <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-accent" />castudy.in</span>
               </div>

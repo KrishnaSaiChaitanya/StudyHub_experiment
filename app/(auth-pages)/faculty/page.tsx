@@ -14,6 +14,7 @@ export interface FacultyDisplayData {
   rating: number;
   students: string;
   level: string;
+  profile_picture?: string | null;
 }
 
 const formatNameToSubject = (subject: string | null) => {
@@ -47,6 +48,7 @@ const Faculty = () => {
           rating: Number(f.rating) || 4.5,
           students: f.students_count ? `${f.students_count >= 1000 ? (f.students_count/1000).toFixed(1) + 'K' : f.students_count}+` : "New",
           level: formatLevel(f.level),
+          profile_picture: f.profile_picture || null,
         }));
         setFacultyList(formattedData);
       }
@@ -87,8 +89,12 @@ const Faculty = () => {
                     transition={{ delay: i * 0.06 }}
                     className="rounded-xl border border-border bg-card p-5 shadow-card transition-all hover:shadow-card-hover hover:border-accent/30"
                   >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                      {f.name.split(" ").slice(-1)[0][0]}
+                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                      {f.profile_picture ? (
+                        <img src={f.profile_picture} alt={f.name} className="h-full w-full object-cover" />
+                      ) : (
+                        f.name.split(" ").slice(-1)[0][0]
+                      )}
                     </div>
                     <h3 className="mt-3 text-sm font-semibold text-card-foreground">{f.name}</h3>
                     <p className="text-xs text-accent">{f.subject} · {f.level}</p>

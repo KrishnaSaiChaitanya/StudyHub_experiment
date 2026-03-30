@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import dynamic from "next/dynamic";
 import { BookmarkItem, DbNote } from "./types";
 import { redirect } from "next/navigation";
+import type { StudentLevel } from "@/utils/supabase/types";
+import { SUBJECT_MAPPING } from "@/utils/subjects";
 
 const BookmarksClient = dynamic(() => import("./BookmarksClient"), { ssr: true });
 
@@ -42,6 +44,15 @@ export default async function BookmarksPage() {
     redirect("/sign-in");
   }
 
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("student_type")
+    .eq("id", user.id)
+    .single();
+
+  const studentType = profileData?.student_type as StudentLevel | null;
+  const subjects = studentType ? SUBJECT_MAPPING[studentType] : SUBJECT_MAPPING.foundation;
+
   // Fetch Notes
   const { data: notesData } = await supabase
     .from("notes")
@@ -62,7 +73,20 @@ export default async function BookmarksPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  const formattedBookmarks: BookmarkItem[] = (bookmarksData || []).map((b: any) => {
+  const filteredBookmarksData = (bookmarksData || []).filter((b: any) => {
+    if (b.study_planners?.category) {
+      return subjects.includes(b.study_planners.category);
+    }
+    if (b.practice_papers?.subject) {
+      return subjects.includes(b.practice_papers.subject);
+    }
+    if (b.questions?.tests?.category) {
+      return subjects.includes(b.questions.tests.category);
+    }
+    return true;
+  });
+
+  const formattedBookmarks: BookmarkItem[] = filteredBookmarksData.map((b: any) => {
     if (b.study_planners) {
       return {
         id: b.id,

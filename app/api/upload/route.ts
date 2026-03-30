@@ -14,12 +14,12 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Upload to Cloudinary
+    const isImage = file.type.startsWith('image/');
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
-          resource_type: 'raw', // Use raw for PDF files
-          folder: 'community_library',
+          resource_type: isImage ? 'image' : 'raw',
+          folder: isImage ? 'faculty_profiles' : 'community_library',
           public_id: `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`,
         },
         (error: any, result: any) => {

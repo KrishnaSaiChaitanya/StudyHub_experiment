@@ -9,6 +9,7 @@ import { FileText, Clock, ChevronRight, BookOpen, Sparkles, TrendingUp } from "l
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
+import { useStudent } from "@/components/StudentTypeProvider";
 import { toast } from "sonner";
 
 interface Test {
@@ -23,14 +24,18 @@ export default function MockExamsPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();
+  const { subjects, loading: studentLoading } = useStudent();
 
   useEffect(() => {
     const fetchTests = async () => {
       try {
-        const { data, error } = await supabase
-          .from('tests')
-          .select('*')
-          .order('created_at', { ascending: false });
+        let testQuery = supabase.from('tests').select('*');
+
+        if (subjects.length > 0) {
+          testQuery = testQuery.in('category', subjects);
+        }
+
+        const { data, error } = await testQuery.order('created_at', { ascending: false });
         
         if (error) throw error;
         setTests(data || []);
@@ -43,7 +48,7 @@ export default function MockExamsPage() {
     };
 
     fetchTests();
-  }, [supabase]);
+  }, [supabase, subjects, studentLoading]);
 
   const handleStartTest = (testId: string) => {
     router.push(`/practice/mock-exams/${testId}`);

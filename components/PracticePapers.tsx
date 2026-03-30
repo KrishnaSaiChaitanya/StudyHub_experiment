@@ -1,5 +1,6 @@
 "use client"
 import { useState, useMemo, useEffect } from "react";
+import { useStudent } from "@/components/StudentTypeProvider";
 import { motion } from "framer-motion";
 import { Search, Bookmark, BookmarkCheck, Download, Eye, Filter, FileText, Loader2, ArrowLeft } from "lucide-react";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -11,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client"; // Adjust based on your setup
 import { StudentLevel, SubjectCategory } from "@/utils/supabase/types";
-import { useRouter } from "next/navigation";
 
 
 type DbPaper = {
@@ -39,12 +39,16 @@ const formatSubjectName = (subject: string) => {
 
 const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
   const supabase = createClient();
-
+  const { studentLevel, subjects: studentSubjects, loading: studentLoading } = useStudent();
+  console.log(studentLevel, studentSubjects);
   
+
   const [papers, setPapers] = useState<DbPaper[]>([]);
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewingPaperId, setViewingPaperId] = useState<string | null>(null);
+  const [downloadingPaperId, setDownloadingPaperId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
@@ -60,11 +64,20 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
         if (user) setUserId(user.id);
 
         // 1. Fetch papers for this specific type (mtp, rtp, or pyq)
-        const { data: papersData, error: papersError } = await supabase
+        let papersQuery = supabase
           .from("practice_papers")
           .select("*")
-          .eq("type", paperType)
-          .order("exam_year", { ascending: false });
+          .eq("type", paperType);
+
+        // if (studentLevel) {
+        //   papersQuery = papersQuery.eq("level", studentLevel);
+        // }
+
+        // if (studentSubjects.length > 0) {
+        //   papersQuery = papersQuery.in("subject", studentSubjects);
+        // }
+
+        const { data: papersData, error: papersError } = await papersQuery.order("exam_year", { ascending: false });
 
         if (papersData) setPapers(papersData);
         if (papersError) console.error("Error fetching papers:", papersError);
@@ -156,9 +169,61 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
     }
   };
 
+  const openPaper = (paper: DbPaper) => {
+    if (!paper.pdf_url) {
+      toast({ title: "Missing PDF", description: "This paper has no PDF available.", variant: "destructive" });
+      return;
+    }
+
+    setViewingPaperId(paper.id);
+    const newTab = window.open(paper.pdf_url, "_blank", "noopener,noreferrer");
+
+    if (!newTab) {
+      toast({ title: "Unable to open paper", description: "Please allow popups for this site.", variant: "destructive" });
+      setViewingPaperId(null);
+      return;
+    }
+
+    newTab.focus();
+    toast({ title: "Opening paper...", description: paper.title });
+    setViewingPaperId(null);
+  };
+
+  const downloadPaper = async (paper: DbPaper) => {
+    if (!paper.pdf_url) {
+      toast({ title: "Missing PDF", description: "This paper has no PDF available.", variant: "destructive" });
+      return;
+    }
+
+    setDownloadingPaperId(paper.id);
+
+    try {
+      const response = await fetch(paper.pdf_url);
+      if (!response.ok) throw new Error("Failed to download file");
+
+      const blob = await response.blob();
+      const href = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = href;
+      const sanitizedTitle = paper.title.replace(/[^a-z0-9_\-\.]/gi, "_");
+      anchor.download = `${sanitizedTitle}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(href);
+
+      toast({ title: "Download started", description: paper.title });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({ title: "Download failed", description: "Could not download this paper.", variant: "destructive" });
+    } finally {
+      setDownloadingPaperId(null);
+    }
+  };
+
   // Dynamic filter lists based on fetched data
   const subjects = useMemo(() => Array.from(new Set(papers.map((p) => p.subject))), [papers]);
-  const levels = useMemo(() => Array.from(new Set(papers.map((p) => p.level))), [papers]);
+  const levels = useMemo(() => Array.from(new Set(papers.map((p) => p.exam_year))), [papers]);
 
   const filtered = useMemo(() => {
     return papers.filter((p) => {
@@ -167,7 +232,7 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
         p.title.toLowerCase().includes(search.toLowerCase()) ||
         formattedSubject.toLowerCase().includes(search.toLowerCase());
       const matchesSubject = subjectFilter === "all" || p.subject === subjectFilter;
-      const matchesLevel = levelFilter === "all" || p.level === levelFilter;
+      const matchesLevel = levelFilter === "all" || p.exam_year === levelFilter;
       return matchesSearch && matchesSubject && matchesLevel;
     });
   }, [papers, search, subjectFilter, levelFilter]);
@@ -225,7 +290,7 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
               <SelectValue placeholder="Level" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Levels</SelectItem>
+              <SelectItem value="all">All Exam Years</SelectItem>
               {levels.map((l) => (
                 <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>
               ))}
@@ -270,8 +335,8 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
                   <h3 className="text-sm font-semibold text-card-foreground truncate">{paper.title}</h3>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <Badge variant="secondary" className="text-[10px]">{formatSubjectName(paper.subject)}</Badge>
-                    <Badge variant="outline" className="text-[10px] capitalize">{paper.level}</Badge>
-                    <span className="text-[10px] text-muted-foreground">{paper.exam_year} • {paper.pages} pages</span>
+                    <Badge variant="outline" className="text-[10px] capitalize">{paper.exam_year}</Badge>
+                    <span className="text-[10px] text-muted-foreground">{paper.level} • {paper.pages} pages</span>
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1 mt-3 sm:mt-0 justify-end">
@@ -292,19 +357,29 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => toast({ title: "Opening paper...", description: paper.title })}
+                    onClick={() => openPaper(paper)}
+                    disabled={isLoading || viewingPaperId === paper.id || downloadingPaperId === paper.id}
                     title="View"
                   >
-                    <Eye className="h-4 w-4" />
+                    {viewingPaperId === paper.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => toast({ title: "Downloading...", description: paper.title })}
+                    onClick={() => downloadPaper(paper)}
+                    disabled={isLoading || viewingPaperId === paper.id || downloadingPaperId === paper.id}
                     title="Download"
                   >
-                    <Download className="h-4 w-4" />
+                    {downloadingPaperId === paper.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </motion.div>

@@ -140,6 +140,8 @@ const ProgressDashboardView = ({ onBack }: Props) => {
   }, [running]);
 
   useEffect(() => {
+    if (studentLoading) return;
+
     const initData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -150,27 +152,40 @@ const ProgressDashboardView = ({ onBack }: Props) => {
       }
     };
     initData();
-  }, [supabase.auth]);
+  }, [supabase.auth, subjects, studentLoading]);
 
   const fetchTodos = async (uid: string) => {
-    const { data } = await supabase.from('todos').select('*').eq('user_id', uid).order('created_at', { ascending: false });
+    let todosQuery = supabase.from('todos').select('*').eq('user_id', uid).order('created_at', { ascending: false });
+    if (subjects.length > 0) {
+      todosQuery = todosQuery.in('category', subjects);
+    }
+    const { data } = await todosQuery;
     if (data) setTodos(data);
   };
 
   const fetchSessions = async (uid: string) => {
     // Today's sessions
     const today = new Date().toLocaleDateString('en-CA'); // Gets YYYY-MM-DD local
-    const { data: todaySessions } = await supabase
+    let sessionsQuery = supabase
       .from('study_sessions')
       .select('*')
       .eq('user_id', uid)
       .gte('session_date', today)
       .order('created_at', { ascending: false });
-      
+
+    if (subjects.length > 0) {
+      sessionsQuery = sessionsQuery.in('category', subjects);
+    }
+
+    const { data: todaySessions } = await sessionsQuery;
     if (todaySessions) setSessions(todaySessions);
 
     // Total sessions count
-    const { count } = await supabase.from('study_sessions').select('*', { count: 'exact', head: true }).eq('user_id', uid);
+    let countQuery = supabase.from('study_sessions').select('*', { count: 'exact', head: true }).eq('user_id', uid);
+    if (subjects.length > 0) {
+      countQuery = countQuery.in('category', subjects);
+    }
+    const { count } = await countQuery;
     if (count !== null) setTotalSessionsCount(count);
   };
 

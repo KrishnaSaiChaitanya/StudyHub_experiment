@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { StudentLevel, SubjectCategory } from "@/utils/supabase/types";
+import { syncUserActivity } from "@/utils/supabase/profile";
 import { SUBJECT_MAPPING } from "@/utils/subjects";
 import { motion, AnimatePresence } from "framer-motion";
 import { GraduationCap, Briefcase, Award, Loader2 } from "lucide-react";
@@ -33,6 +34,8 @@ export const StudentTypeProvider = ({ children }: { children: React.ReactNode })
 
   const fetchProfile = async () => {
     setLoading(true);
+    await syncUserActivity(supabase);
+
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data, error } = await supabase

@@ -4,6 +4,7 @@ import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { syncUserActivity } from "@/utils/supabase/profile";
 
 const siteURL = process.env.NEXT_PUBLIC_SITE_URL
 
@@ -55,7 +56,7 @@ export const signInAction = async (formData: FormData) => {
   const password = formData.get("password") as string;
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -65,6 +66,10 @@ export const signInAction = async (formData: FormData) => {
       "/sign-in",
       "error",
       error.message);
+  }
+
+  if (data?.user) {
+    await syncUserActivity(supabase);
   }
 
   return redirect("/dashboard");

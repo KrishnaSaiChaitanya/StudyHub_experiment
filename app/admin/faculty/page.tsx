@@ -31,6 +31,8 @@ export default function FacultyDashboard() {
   const [level, setLevel] = useState("");
   const [subject, setSubject] = useState("");
   const [phone, setPhone] = useState("");
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const [profilePictureUrl, setProfilePictureUrl] = useState("");
 
   const allSubjects = [
     ...SUBJECT_MAPPING.foundation,
@@ -55,6 +57,8 @@ export default function FacultyDashboard() {
     setLevel(facultyData.level || "");
     setSubject(facultyData.subject || "");
     setPhone(facultyData.phone || "");
+    setProfilePictureUrl(facultyData.profile_picture || "");
+    setProfilePictureFile(null);
     setEditingId(facultyData.id);
     setShowAdd(true);
   };
@@ -63,13 +67,40 @@ export default function FacultyDashboard() {
     e.preventDefault();
     setSaving(true);
 
-    const payload = {
+    const payload: any = {
       name,
       email: email || null,
       level: level || null,
       subject: subject || null,
       phone: phone || null,
     };
+
+    if (profilePictureFile) {
+      try {
+        const formData = new FormData();
+        formData.append("file", profilePictureFile);
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Failed to upload profile image");
+        }
+
+        const uploadData = await uploadRes.json();
+        payload.profile_picture = uploadData.url;
+      } catch (uploadError: any) {
+        toast({ title: "Profile image upload failed", description: uploadError?.message || "Please try again.", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+    } else if (profilePictureUrl) {
+      payload.profile_picture = profilePictureUrl;
+    } else {
+      payload.profile_picture = null;
+    }
 
     let error;
     if (editingId) {
@@ -114,7 +145,7 @@ export default function FacultyDashboard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={fetchData}><RefreshCw className="h-4 w-4" /></Button>
-          <Button onClick={() => { setEditingId(null); setName(""); setEmail(""); setLevel(""); setSubject(""); setPhone(""); setShowAdd(true); }} className="gap-2">
+          <Button onClick={() => { setEditingId(null); setName(""); setEmail(""); setLevel(""); setSubject(""); setPhone(""); setProfilePictureFile(null); setProfilePictureUrl(""); setShowAdd(true); }} className="gap-2">
             <Plus className="h-4 w-4" /> Add Faculty
           </Button>
         </div>
@@ -125,6 +156,8 @@ export default function FacultyDashboard() {
         if (!open) {
           setEditingId(null);
           setName(""); setEmail(""); setLevel(""); setSubject(""); setPhone("");
+          setProfilePictureFile(null);
+          setProfilePictureUrl("");
         }
       }}>
         <DialogContent className="max-w-2xl">
@@ -139,6 +172,25 @@ export default function FacultyDashboard() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Email</label>
               <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email (optional)" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Profile Image</label>
+              <div className="flex flex-col gap-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setProfilePictureFile(file);
+                    if (file) {
+                      setProfilePictureUrl(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+                {profilePictureUrl ? (
+                  <img src={profilePictureUrl} alt="Profile preview" className="h-16 w-16 rounded-full object-cover" />
+                ) : null}
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Level</label>

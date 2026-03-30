@@ -5,6 +5,7 @@ import {
   BookOpen, FileText, Timer, CalendarDays, Users, GraduationCap,
   ClipboardCheck, BarChart3, Compass, MessageCircle, Target, Lightbulb
 } from "lucide-react";
+import path from "path";
 
 const features = [
   { icon: FileText, title: "MTP, RTP & PYQ", description: "Access mock test papers, revision test papers, and previous year questions." },
@@ -20,6 +21,8 @@ const features = [
   { icon: BookOpen, title: "Study Planner", description: "Personalized study plans based on your exam schedule." },
   { icon: Lightbulb, title: "Faculty Interaction", description: "Live sessions and personalized guidance from faculty." },
 ];
+
+
 
 const FeaturesSection = () => {
   return (

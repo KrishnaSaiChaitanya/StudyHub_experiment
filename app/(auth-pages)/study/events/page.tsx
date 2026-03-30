@@ -149,9 +149,13 @@ const ExamCalendarView = () => {
           <Button
             key={cat}
             size="sm"
-            variant={filterCategory === cat ? "default" : "outline"}
+            variant="outline"
             onClick={() => setFilterCategory(filterCategory === cat ? null : cat)}
-            className={filterCategory === cat ? "bg-accent" : ""}
+            className={
+              filterCategory === cat
+                ? `${CATEGORY_COLORS[cat]} hover:bg-rose-500/20 hover:text-inherit`
+                : "bg-white text-foreground border border-slate-900 hover:bg-slate-100 hover:text-foreground"
+            }
           >
             {cat}
           </Button>
@@ -202,12 +206,12 @@ const ExamCalendarView = () => {
                      {dayEvents.length > 0 && (
   <div className="mt-1 flex w-full flex-col gap-1 px-1">
     {dayEvents.slice(0, 3).map((ev) => {
-      const categoryColor = CATEGORY_COLORS[ev.category] || "bg-primary";
+      const categoryColor = CATEGORY_COLORS[ev.category] || "bg-primary text-primary-foreground border border-input";
 
       return (
         <div
           key={ev.id}
-          className={`w-full truncate rounded-md px-1.5 py-[2px] text-[10px] font-medium text-white bg-primary`}
+          className={`${categoryColor} w-full truncate rounded-md px-1.5 py-[2px] text-[10px] font-medium`}
         >
           {ev.event_time ? `${ev.event_time} ` : ''}
           {ev.title}

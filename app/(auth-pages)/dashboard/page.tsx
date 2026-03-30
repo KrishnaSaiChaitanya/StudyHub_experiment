@@ -1,7 +1,7 @@
 "use client"
-import { useQuery } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "@/components/Navbar";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import Footer from "@/components/Footer";
 import {
   BarChart3,
@@ -13,10 +13,27 @@ import {
   FileText,
   Library,
   Loader2,
+  ClipboardCheck,
+  GraduationCap,
+  Timer,
+  Target,
+  MessageCircle,
+  BookOpen,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { useStudent } from "@/components/StudentTypeProvider";
@@ -44,12 +61,44 @@ type DbEvent = {
   event_time: string;
 };
 
-const quickLinks = [
-  { icon: BarChart3, label: "Progress Dashboard", path: "/study/progress", color: "bg-accent/10 text-accent" },
-  { icon: FileText, label: "Mock Exams", path: "/practice/mock-exams", color: "bg-accent/10 text-accent" },
-  { icon: Library, label: "Community Library", path: "/study/planner?filter=community", color: "bg-accent/10 text-accent" },
-  { icon: Users, label: "Group Study Rooms", path: "/community/rooms", color: "bg-accent/10 text-accent" },
+type QuickAccessOption = {
+  icon: typeof FileText;
+  title: string;
+  path: string;
+};
+
+const defaultQuickLinks: QuickAccessOption[] = [
+  { icon: BarChart3, title: "Progress Dashboard", path: "/study/progress" },
+  { icon: FileText, title: "Mock Exams", path: "/practice/mock-exams" },
+  { icon: Library, title: "Community Library", path: "/study/planner?filter=community" },
+  { icon: Users, title: "Group Study Rooms", path: "/community/rooms" },
 ];
+
+const quickAccessOptions: QuickAccessOption[] = [
+  { icon: FileText, title: "MTP", path: "/practice/mtp" },
+  { icon: ClipboardCheck, title: "Mock Exams", path: "/practice/mock" },
+  { icon: GraduationCap, title: "Faculty Database", path: "/faculty" },
+  { icon: Users, title: "Group Study", path: "/community/rooms" },
+  { icon: Timer, title: "RTP", path: "/practice/rtp" },
+  { icon: Target, title: "PYQ", path: "/practice/pyq" },
+  { icon: BarChart3, title: "Progress Tracking", path: "/study/progress" },
+  { icon: CalendarDays, title: "Exam Calendar", path: "/study/events" },
+  { icon: MessageCircle, title: "Community Library", path: "/community/upload" },
+  { icon: BookOpen, title: "Study Planner", path: "/study/planner" },
+  { icon: Lightbulb, title: "Notes & Bookmarks", path: "/study/bookmarks" },
+];
+
+const normalizeQuickAccessPreference = (preference: unknown): string[] => {
+  if (Array.isArray(preference)) {
+    return preference.filter((item): item is string => typeof item === "string");
+  }
+
+  if (typeof preference === "string" && preference.length) {
+    return [preference];
+  }
+
+  return [];
+};
 
 // Utility: Format Enum to Title Case
 const formatSubjectName = (subject: string | null) => {
@@ -69,9 +118,32 @@ const timeAgo = (dateString: string) => {
 
 const Home = () => {
   const supabase = createClient();
-  const { studentLevel, loading: studentLoading } = useStudent();
+  const { studentLevel, subjects, loading: studentLoading } = useStudent();
+  const queryClient = useQueryClient();
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+  const [selectedQuickAccess, setSelectedQuickAccess] = useState<string[]>([]);
 
-  const { data, isLoading, isError } = useQuery({
+  const quickAccessMutation = useMutation({
+    mutationFn: async (paths: string[]) => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Not authenticated");
+
+      const { error } = await supabase.from('profiles')
+        .update({ quick_access_preference: paths, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      return paths;
+    },
+    onSuccess: (paths) => {
+      queryClient.setQueryData(["dashboardData", studentLevel], (oldData: any) => ({
+        ...(oldData || {}),
+        quickAccessPreference: paths,
+      }));
+    },
+  });
+
+  const { data, isLoading } = useQuery({
     queryKey: ["dashboardData", studentLevel],
     enabled: !studentLoading,
     queryFn: async () => {
@@ -90,11 +162,16 @@ const Home = () => {
         papersRes,
         examDatesRes
       ] = await Promise.all([
-        supabase.from('profiles').select('current_streak').eq('id', user.id).single(),
+        supabase.from('profiles').select('current_streak, quick_access_preference').eq('id', user.id).single(),
         supabase.from('study_sessions').select('duration_seconds').eq('user_id', user.id).eq('session_date', todayStr),
         supabase.from('todos').select('status').eq('user_id', user.id),
         supabase.from('calendar_events').select('*').eq('level', studentLevel || 'foundation'),
-        supabase.from('practice_papers').select('*').eq('level', studentLevel || 'foundation').order('created_at', { ascending: false }).limit(5),
+        supabase.from('practice_papers')
+          .select('*')
+          .eq('level', studentLevel || 'foundation')
+          .in('subject', subjects)
+          .order('created_at', { ascending: false })
+          .limit(5),
         supabase.from('exam_dates').select('*')
       ]);
 
@@ -136,10 +213,53 @@ const Home = () => {
         recentPapers: (papersRes.data || []) as DbPaper[],
         daysLeft,
         targetDate: format(targetDate, "MMMM dd, yyyy"),
-        userLevel: userLevel.charAt(0).toUpperCase() + userLevel.slice(1)
+        userLevel: userLevel.charAt(0).toUpperCase() + userLevel.slice(1),
+        quickAccessPreference: profileRes.data?.quick_access_preference || null,
       };
     }
   });
+
+  useEffect(() => {
+    const preference = normalizeQuickAccessPreference(data?.quickAccessPreference);
+    if (preference.length) {
+      setSelectedQuickAccess(preference);
+    } else if (!selectedQuickAccess.length) {
+      setSelectedQuickAccess(defaultQuickLinks.map((link) => link.path));
+    }
+  }, [data?.quickAccessPreference]);
+
+  const quickLinks = useMemo(() => {
+    const preference = normalizeQuickAccessPreference(data?.quickAccessPreference);
+
+    const selectedOptions = preference
+      .map((path) => quickAccessOptions.find((option) => option.path === path))
+      .filter((option): option is QuickAccessOption => Boolean(option));
+
+    const fallbackOptions = defaultQuickLinks.filter((link) => !preference.includes(link.path));
+    return [...selectedOptions, ...fallbackOptions].slice(0, 4);
+  }, [data?.quickAccessPreference]);
+
+  const handleToggleQuickAccess = (path: string) => {
+    setSelectedQuickAccess((current) => {
+      if (current.includes(path)) {
+        return current.filter((item) => item !== path);
+      }
+
+      if (current.length >= 4) {
+        return current;
+      }
+
+      return [...current, path];
+    });
+  };
+
+  const handleSavePreference = () => {
+    if (!selectedQuickAccess.length) return;
+
+    quickAccessMutation.mutate(selectedQuickAccess, {
+      onSuccess: () => setIsCustomizeOpen(false),
+    });
+  };
 
   // Extract variables with fallbacks to prevent breaking the UI while loading
   const {
@@ -218,16 +338,74 @@ const Home = () => {
           {/* Left Column — Quick Access */}
           <div className="lg:col-span-2">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
-              <h2 className="mb-4 text-base font-semibold text-foreground">Quick Access</h2>
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-base font-semibold text-foreground">Quick Access</h2>
+                <Dialog open={isCustomizeOpen} onOpenChange={setIsCustomizeOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">Customize</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Customize Quick Access</DialogTitle>
+                      <DialogDescription>
+                        Choose one quick access shortcut to show first in your dashboard.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="mt-6 space-y-2">
+                      <p className="text-sm text-muted-foreground">Select up to 4 quick access cards.</p>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {quickAccessOptions.map((option) => {
+                          const isSelected = selectedQuickAccess.includes(option.path);
+                          const isDisabled = !isSelected && selectedQuickAccess.length >= 4;
+                          return (
+                            <button
+                              key={option.path}
+                              type="button"
+                              onClick={() => handleToggleQuickAccess(option.path)}
+                              className={
+                                `flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all ${
+                                  isSelected ? 'border-accent bg-accent/10 shadow-sm' : 'border-border bg-background hover:border-accent/70'
+                                } ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`
+                              }
+                              disabled={isDisabled}
+                            >
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-accent">
+                                <option.icon className="h-5 w-5" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-foreground">{option.title}</p>
+                                <p className="text-xs text-muted-foreground truncate">{option.path}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <DialogFooter className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                      <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                      </DialogClose>
+                      <Button
+                        onClick={handleSavePreference}
+                        disabled={!selectedQuickAccess.length || quickAccessMutation.isLoading}
+                      >
+                        {quickAccessMutation.isLoading ? 'Saving...' : 'Save Preference'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 {quickLinks.map((link, i) => (
                   <Link href={link.path} key={i} prefetch={false}>
                     <Card className="group cursor-pointer border-border transition-shadow hover:shadow-md">
                       <CardContent className="flex flex-col items-center gap-3 p-4 text-center">
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${link.color}`}>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/10 text-accent">
                           <link.icon className="h-4 w-4" />
                         </div>
-                        <span className="text-sm font-medium text-foreground">{link.label}</span>
+                        <span className="text-sm font-medium text-foreground">{link.title}</span>
                       </CardContent>
                     </Card>
                   </Link>
