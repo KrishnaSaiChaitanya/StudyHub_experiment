@@ -34,8 +34,10 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
   const [courses, setCourses] = useState<any[]>([]);
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [courseName, setCourseName] = useState("");
-  const [courseSessions, setCourseSessions] = useState("");
   const [courseHours, setCourseHours] = useState("");
+  const [courseViews, setCourseViews] = useState("");
+  const [courseBatchType, setCourseBatchType] = useState("");
+  const [coursePeriod, setCoursePeriod] = useState("");
   const [coursePrice, setCoursePrice] = useState("");
   const [courseLink, setCourseLink] = useState("");
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
@@ -127,8 +129,10 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
   // Handle Courses
   const handleEditCourse = (c: any) => {
     setCourseName(c.name);
-    setCourseSessions(c.sessions_count ? c.sessions_count.toString() : "");
     setCourseHours(c.hours_count ? c.hours_count.toString() : "");
+    setCourseViews(c.views || "");
+    setCourseBatchType(c.batchtype || "");
+    setCoursePeriod(c.period || "");
     setCoursePrice(c.price ? c.price.toString() : "");
     setCourseLink(c.course_link || "");
     setEditingCourseId(c.id);
@@ -141,8 +145,10 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
     const payload = {
       faculty_id: id,
       name: courseName,
-      sessions_count: courseSessions ? parseInt(courseSessions) : 0,
       hours_count: courseHours ? parseInt(courseHours) : 0,
+      views: courseViews,
+      batchtype: courseBatchType,
+      period: coursePeriod,
       price: coursePrice ? parseFloat(coursePrice) : 0,
       course_link: courseLink,
     };
@@ -160,7 +166,7 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
       toast({ title: "Error saving course", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Course saved successfully!" });
-      setCourseName(""); setCourseSessions(""); setCourseHours(""); setCoursePrice(""); setCourseLink("");
+      setCourseName(""); setCourseHours(""); setCourseViews(""); setCourseBatchType(""); setCoursePeriod(""); setCoursePrice(""); setCourseLink("");
       setEditingCourseId(null);
       setShowAddCourse(false);
       fetchData();
@@ -333,12 +339,20 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
                     <Input required value={courseName} onChange={e => setCourseName(e.target.value)} placeholder="Full Batch Course" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Sessions Count</label>
-                    <Input type="number" required value={courseSessions} onChange={e => setCourseSessions(e.target.value)} />
+                    <label className="text-sm font-medium">Total Hours</label>
+                    <Input type="number" required value={courseHours} onChange={e => setCourseHours(e.target.value)} placeholder="e.g. 150" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Total Hours</label>
-                    <Input type="number" required value={courseHours} onChange={e => setCourseHours(e.target.value)} />
+                    <label className="text-sm font-medium">Views</label>
+                    <Input required value={courseViews} onChange={e => setCourseViews(e.target.value)} placeholder="e.g. 1.5 Views or Unlimited" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Batch Type</label>
+                    <Input required value={courseBatchType} onChange={e => setCourseBatchType(e.target.value)} placeholder="e.g. Regular / Fasttrack" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Period / Validity</label>
+                    <Input required value={coursePeriod} onChange={e => setCoursePeriod(e.target.value)} placeholder="e.g. 6 Months / May 2025" />
                   </div>
                   <div className="space-y-2 md:col-span-1">
                     <label className="text-sm font-medium">Price ($ or ₹)</label>
@@ -363,30 +377,34 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
               <TableHeader>
                 <TableRow>
                   <TableHead>Course Name</TableHead>
-                  <TableHead>Sessions</TableHead>
                   <TableHead>Hours</TableHead>
-                   <TableHead>Price</TableHead>
+                  <TableHead>Views</TableHead>
+                  <TableHead>Batch</TableHead>
+                  <TableHead>Period</TableHead>
+                  <TableHead>Price</TableHead>
                   <TableHead>URL</TableHead>
                   <TableHead className="w-[100px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {courses.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No courses available.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">No courses available.</TableCell></TableRow>
                 )}
                 {courses.map(c => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell>{c.sessions_count}</TableCell>
                     <TableCell>{c.hours_count}h</TableCell>
+                    <TableCell>{c.views}</TableCell>
+                    <TableCell>{c.batchtype}</TableCell>
+                    <TableCell>{c.period}</TableCell>
                     <TableCell>₹{c.price}</TableCell>
                     <TableCell>
                       {c.course_link ? (
-                        <a href={c.course_link} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate max-w-[150px] block">
-                          View Link
+                        <a href={c.course_link} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate max-w-[100px] block text-xs">
+                          View
                         </a>
                       ) : (
-                        <span className="text-muted-foreground text-xs">No link</span>
+                        <span className="text-muted-foreground text-[10px]">No link</span>
                       )}
                     </TableCell>
                     <TableCell>

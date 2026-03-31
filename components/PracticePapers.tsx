@@ -40,7 +40,7 @@ const formatSubjectName = (subject: string) => {
 const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
   const supabase = createClient();
   const { studentLevel, subjects: studentSubjects, loading: studentLoading } = useStudent();
-  console.log(studentLevel, studentSubjects);
+
   
 
   const [papers, setPapers] = useState<DbPaper[]>([]);
@@ -69,13 +69,13 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
           .select("*")
           .eq("type", paperType);
 
-        // if (studentLevel) {
-        //   papersQuery = papersQuery.eq("level", studentLevel);
-        // }
+        if (studentLevel) {
+          papersQuery = papersQuery.eq("level", studentLevel);
+        }
 
-        // if (studentSubjects.length > 0) {
-        //   papersQuery = papersQuery.in("subject", studentSubjects);
-        // }
+        if (studentSubjects.length > 0) {
+          papersQuery = papersQuery.in("subject", studentSubjects);
+        }
 
         const { data: papersData, error: papersError } = await papersQuery.order("exam_year", { ascending: false });
 
@@ -103,7 +103,7 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
     };
 
     fetchData();
-  }, [supabase, paperType]);
+  }, [supabase, paperType, studentSubjects, studentLevel]);
 
   const toggleBookmark = async (id: string, paperTitle: string) => {
     if (!userId) {
@@ -177,15 +177,6 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
 
     setViewingPaperId(paper.id);
     const newTab = window.open(paper.pdf_url, "_blank", "noopener,noreferrer");
-
-    if (!newTab) {
-      toast({ title: "Unable to open paper", description: "Please allow popups for this site.", variant: "destructive" });
-      setViewingPaperId(null);
-      return;
-    }
-
-    newTab.focus();
-    toast({ title: "Opening paper...", description: paper.title });
     setViewingPaperId(null);
   };
 
@@ -212,7 +203,7 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
       anchor.remove();
       URL.revokeObjectURL(href);
 
-      toast({ title: "Download started", description: paper.title });
+      // toast({ title: "Download started", description: paper.title });
     } catch (error) {
       console.error("Download error:", error);
       toast({ title: "Download failed", description: "Could not download this paper.", variant: "destructive" });

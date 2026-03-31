@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
@@ -32,6 +32,8 @@ import { ProFeatureLock } from "@/components/ProFeatureLock";
 import { createClient } from "@/utils/supabase/client";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { BookmarkItem, DbNote } from "./types";
+import { useStudent } from "@/components/StudentTypeProvider";
+import { formatSubjectName } from "@/utils/subjects";
 import { useRouter } from "next/navigation";
 
 const typeIcon = {
@@ -71,8 +73,90 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const { subjects, loading: studentLoading } = useStudent();
+
   const [notes, setNotes] = useState<DbNote[]>(initialNotes);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>(initialBookmarks);
+
+  // Fetch bookmarks when subjects change
+  useEffect(() => {
+    const fetchBookmarks = async () => {
+      if (!userId || studentLoading) return;
+
+      setIsLoading(true);
+      try {
+        const { data: bookmarksData, error } = await supabase
+          .from("user_bookmarks")
+          .select(`
+            id,
+            created_at,
+            study_planners ( title, category, pdf_url ),
+            practice_papers ( title, subject, type, pdf_url ),
+            questions ( id, question_text, test_id, tests ( name, category ) )
+          `)
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        if (bookmarksData) {
+          const filtered = bookmarksData.filter((b: any) => {
+            if (b.study_planners?.category) {
+              return subjects.includes(b.study_planners.category);
+            }
+            if (b.practice_papers?.subject) {
+              return subjects.includes(b.practice_papers.subject);
+            }
+            if (b.questions?.tests?.category) {
+              return subjects.includes(b.questions.tests.category);
+            }
+            return true;
+          });
+
+          const formatted: BookmarkItem[] = filtered.map((b: any) => {
+            if (b.study_planners) {
+              return {
+                id: b.id,
+                title: b.study_planners.title,
+                type: "pdf" as const,
+                source: formatSubjectName(b.study_planners.category as any),
+                savedAt: new Date(b.created_at).toISOString().split("T")[0],
+                url: b.study_planners.pdf_url,
+              };
+            } else if (b.practice_papers) {
+              return {
+                id: b.id,
+                title: b.practice_papers.title,
+                type: b.practice_papers.type as "rtp" | "pyq" | "mtp",
+                source: formatSubjectName(b.practice_papers.subject as any),
+                savedAt: new Date(b.created_at).toISOString().split("T")[0],
+                url: b.practice_papers.pdf_url,
+              };
+            } else if (b.questions) {
+              const q = b.questions;
+              return {
+                id: b.id,
+                title: q.question_text.substring(0, 60) + (q.question_text.length > 60 ? "..." : ""),
+                type: "question" as const,
+                source: q.tests ? `${q.tests.name} (${formatSubjectName(q.tests.category as any)})` : "Mock Test",
+                savedAt: new Date(b.created_at).toISOString().split("T")[0],
+                targetId: q.test_id,
+              };
+            }
+            return null;
+          }).filter(Boolean) as BookmarkItem[];
+
+          setBookmarks(formatted);
+        }
+      } catch (error) {
+        console.error("Error fetching bookmarks:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBookmarks();
+  }, [userId, subjects, studentLoading, supabase]);
   
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [newNote, setNewNote] = useState(false);

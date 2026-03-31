@@ -165,7 +165,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
 
   const fetchSessions = async (uid: string) => {
     // Today's sessions
-    const today = new Date().toLocaleDateString('en-CA'); // Gets YYYY-MM-DD local
+    const today = new Date().toUTCString(); // Gets YYYY-MM-DD local
     let sessionsQuery = supabase
       .from('study_sessions')
       .select('*')
@@ -179,7 +179,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
 
     const { data: todaySessions } = await sessionsQuery;
     if (todaySessions) setSessions(todaySessions);
-
+console.log(todaySessions);
     // Total sessions count
     let countQuery = supabase.from('study_sessions').select('*', { count: 'exact', head: true }).eq('user_id', uid);
     if (subjects.length > 0) {

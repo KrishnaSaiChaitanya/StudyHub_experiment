@@ -5,18 +5,22 @@ import MockExam from "@/components/MockExam";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
-import { FileText, Clock, ChevronRight, BookOpen, Sparkles, TrendingUp } from "lucide-react";
+import { FileText, Clock, ChevronRight, BookOpen, Sparkles, TrendingUp, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { useStudent } from "@/components/StudentTypeProvider";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 interface Test {
   id: string;
   name: string;
   category: string;
   questions_count: number;
+  duration?: number;
+  level?: string;
+  updated_at: string;
 }
 
 export default function MockExamsPage() {
@@ -157,6 +161,10 @@ export default function MockExamsPage() {
         <Badge variant="outline" className="border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider text-accent">
           {test.questions_count} Questions
         </Badge>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60 font-medium">
+          <History className="h-3 w-3" />
+          {formatDistanceToNow(new Date(test.updated_at), { addSuffix: true })}
+        </div>
       </div>
     </div>
 
@@ -180,7 +188,7 @@ export default function MockExamsPage() {
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] uppercase text-muted-foreground font-semibold">Duration</span>
-          <span className="text-sm font-bold">{test.questions_count * 1.5}m</span>
+          <span className="text-sm font-bold">{test.duration || test.questions_count * 1.5}m</span>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -189,7 +197,7 @@ export default function MockExamsPage() {
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] uppercase text-muted-foreground font-semibold">Level</span>
-          <span className="text-sm font-bold">Standard</span>
+          <span className="text-sm font-bold capitalize">{test.level || 'Standard'}</span>
         </div>
       </div>
     </div>

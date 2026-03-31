@@ -18,7 +18,7 @@ const resources = [
   { icon: FileText, title: "Mock Test Papers (MTP)", count: "120+ Papers", description: "ICAI-aligned mock test papers for Foundation, Intermediate, and Final levels.", link:"/practice/mtp", isDisabled: false },
   { icon: FileText, title: "Revision Test Papers (RTP)", count: "80+ Papers", description: "Official revision test papers with detailed solutions and explanations.", link:"/practice/rtp", isDisabled: false },
   { icon: FileText, title: "Previous Year Questions", count: "200+ Papers", description: "Comprehensive PYQ bank organized by subject, chapter, and difficulty.", link:"/practice/pyq", isDisabled: false },
-  { icon: ClipboardCheck, title: "Online Mock Exams", count: "50+ Tests", description: "Full-length timed mock exams with auto-grading and performance analysis.", link:"/practice/mock-exams", isDisabled: true },
+  { icon: ClipboardCheck, title: "Online Mock Exams", count: "50+ Tests", description: "Full-length timed mock exams with auto-grading and performance analysis.", link:"/practice/online", isDisabled: true },
 ];
 
 const Practice = () => {

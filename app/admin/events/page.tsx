@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SUBJECT_ABBREVIATIONS, formatSubjectName } from "@/utils/subjects";
+import { SubjectCategory } from "@/utils/supabase/types";
 
 export default function EventsDashboard() {
   const supabase = createClient();
@@ -29,6 +31,7 @@ export default function EventsDashboard() {
   const [eventTime, setEventTime] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("Exam");
+  const [subject, setSubject] = useState<string>("general");
   const EVENT_CATEGORIES = ["Exam", "Mocks", "Deadlines", "Sessions"] as const;
   type EventCategory = typeof EVENT_CATEGORIES[number];
 
@@ -53,6 +56,7 @@ export default function EventsDashboard() {
     setEventTime(event.event_time);
     setDescription(event.description || "");
     setCategory(event.category || "Exam");
+    setSubject(event.subject || "general");
     setEditingId(event.id);
     setShowAdd(true);
   };
@@ -68,7 +72,8 @@ export default function EventsDashboard() {
       event_year: parseInt(eventYear) || new Date().getFullYear(),
       event_time: eventTime,
       description: description || null,
-      category: category
+      category: category,
+      subject: subject
     };
 
     let error;
@@ -84,7 +89,7 @@ export default function EventsDashboard() {
       toast({ title: `Error ${editingId ? 'updating' : 'adding'} event`, description: error.message, variant: "destructive" });
     } else {
       toast({ title: `Event ${editingId ? 'updated' : 'added'}!` });
-      setTitle(""); setEventDate(""); setEventMonth(""); setEventYear(""); setEventTime(""); setDescription(""); setCategory("Exam");
+      setTitle(""); setEventDate(""); setEventMonth(""); setEventYear(""); setEventTime(""); setDescription(""); setCategory("Exam"); setSubject("general");
       setEditingId(null);
       setShowAdd(false);
       fetchData();
@@ -107,7 +112,7 @@ export default function EventsDashboard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={fetchData}><RefreshCw className="h-4 w-4" /></Button>
-          <Button onClick={() => { setEditingId(null); setTitle(""); setEventDate(""); setEventMonth(""); setEventYear(""); setEventTime(""); setDescription(""); setCategory("Exam"); setShowAdd(true); }} className="gap-2">
+          <Button onClick={() => { setEditingId(null); setTitle(""); setEventDate(""); setEventMonth(""); setEventYear(""); setEventTime(""); setDescription(""); setCategory("Exam"); setSubject("general"); setShowAdd(true); }} className="gap-2">
             <Plus className="h-4 w-4" /> Add Event
           </Button>
         </div>
@@ -117,7 +122,7 @@ export default function EventsDashboard() {
         setShowAdd(open);
         if (!open) {
           setEditingId(null);
-          setTitle(""); setEventDate(""); setEventMonth(""); setEventYear(""); setEventTime(""); setDescription(""); setCategory("Exam");
+          setTitle(""); setEventDate(""); setEventMonth(""); setEventYear(""); setEventTime(""); setDescription(""); setCategory("Exam"); setSubject("general");
         }
       }}>
         <DialogContent className="max-w-2xl">
@@ -156,6 +161,19 @@ export default function EventsDashboard() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Subject</label>
+              <Select value={subject} onValueChange={setSubject}>
+                <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
+                <SelectContent>
+                  {Object.keys(SUBJECT_ABBREVIATIONS).map((sub) => (
+                    <SelectItem key={sub} value={sub}>
+                      {formatSubjectName(sub as SubjectCategory)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2 col-span-full">
               <label className="text-sm font-medium">Description (Optional)</label>
               <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief description of the event" />
@@ -181,6 +199,7 @@ export default function EventsDashboard() {
                 <TableHead>Date</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Subject</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -196,6 +215,7 @@ export default function EventsDashboard() {
                   <TableCell>{e.event_date}/{e.event_month}/{e.event_year}</TableCell>
                   <TableCell>{e.event_time}</TableCell>
                   <TableCell>{e.category || '-'}</TableCell>
+                  <TableCell>{formatSubjectName(e.subject as any ?? "")}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(e)} className="text-muted-foreground hover:text-primary">

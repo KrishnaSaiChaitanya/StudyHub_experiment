@@ -4,6 +4,7 @@ import { ArrowLeft, Mail, Phone, Globe, MapPin, Star, Users, BookOpen, Play, Clo
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/utils/supabase/client";
+import Link from "next/link";
 
 interface FacultyData {
   id?: string;
@@ -77,9 +78,9 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <Card className="border-border bg-card p-6">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-2xl font-bold text-accent-foreground">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full text-2xl font-bold  !bg-none" style={{backgroundColor:"white"}}>
               {faculty.profile_picture ? (
-                <img src={faculty.profile_picture} alt={faculty.name} className="h-full w-full object-cover" />
+                <img src={faculty.profile_picture} alt={faculty.name} className="h-full w-full object-cover" style={{backgroundColor:"white"}} />
               ) : (
                 initials
               )}
@@ -206,16 +207,19 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
                 {course.hours_count} Hours
               </span>
               <span className="flex h-6 min-w-[80px] items-center justify-center rounded-lg bg-secondary/50 px-3  text-[10px] font-bold text-muted-foreground">
-                {course.sessions_count} Sessions
+                {course.views}
               </span>
               <span className="flex h-6 min-w-[80px] items-center justify-center rounded-lg bg-secondary/50 px-3  text-[10px] font-bold text-muted-foreground">
-                {course.enrolled_count} Enrolled
+                {course.batchtype}
+              </span>
+              <span className="flex h-6 min-w-[80px] items-center justify-center rounded-lg bg-secondary/50 px-3  text-[10px] font-bold text-muted-foreground">
+                {course.period}
               </span>
             </div>
           </div>
 
           {/* Right Section: Button & Price */}
-          <div className="flex shrink-0 flex-row items-center gap-3 sm:flex-col sm:items-end sm:gap-4">
+          <Link href={course.course_link || "#"} target="_blank" className="flex shrink-0 flex-row items-center gap-3 sm:flex-col sm:items-end sm:gap-4">
             <Button
               size="sm"
               className="h-7 w-24 rounded-md border border-transparent bg-accent  text-xs font-medium text-accent-foreground hover:bg-accent/90"
@@ -225,7 +229,7 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
             <span className="flex h-6 min-w-[80px] items-center justify-center rounded-lg bg-secondary/50 px-3  text-[10px] font-bold text-muted-foreground">
               ₹ {course.price}
             </span>
-          </div>
+          </Link>
         </div>
       ))}
     </div>

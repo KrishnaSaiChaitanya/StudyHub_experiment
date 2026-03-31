@@ -46,6 +46,7 @@ type DbPaper = {
   level: string;
   type: string;
   created_at: string;
+  pdf_url: string;
 };
 
 type DbEvent = {
@@ -160,19 +161,21 @@ const Home = () => {
         todosRes,
         eventsRes,
         papersRes,
-        examDatesRes
+        examDatesRes,
+        plannersRes
       ] = await Promise.all([
         supabase.from('profiles').select('current_streak, quick_access_preference').eq('id', user.id).single(),
         supabase.from('study_sessions').select('duration_seconds').eq('user_id', user.id).eq('session_date', todayStr),
-        supabase.from('todos').select('status').eq('user_id', user.id),
-        supabase.from('calendar_events').select('*').eq('level', studentLevel || 'foundation'),
+        supabase.from('todos').select('status').eq('user_id', user.id).in('category', subjects),
+        supabase.from('calendar_events').select('*').in('subject', ['general', ...subjects]),
         supabase.from('practice_papers')
           .select('*')
           .eq('level', studentLevel || 'foundation')
           .in('subject', subjects)
           .order('created_at', { ascending: false })
           .limit(5),
-        supabase.from('exam_dates').select('*')
+        supabase.from('exam_dates').select('*'),
+        supabase.from('study_planners').select('*').in('category', subjects).order('created_at', { ascending: false }).limit(5),
       ]);
 
       // Process Stats
@@ -210,7 +213,7 @@ const Home = () => {
           tasksDone: `${completed} / ${total}`
         },
         events: upcoming,
-        recentPapers: (papersRes.data || []) as DbPaper[],
+        recentPapers: [...(papersRes.data || []), ...(plannersRes.data || [])].slice(0, 5) as DbPaper[],
         daysLeft,
         targetDate: format(targetDate, "MMMM dd, yyyy"),
         userLevel: userLevel.charAt(0).toUpperCase() + userLevel.slice(1),
@@ -425,17 +428,17 @@ const Home = () => {
             <Card className="mt-4 border-border">
               <CardContent className="divide-y divide-border p-0 min-h-[200px]">
                 {isLoading ? (
-                  <div className="flex h-[200px] items-center justify-center">
+                  <div className="flex h-[220px] items-center justify-center">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : events.length === 0 ? (
-                  <div className="flex h-[200px] flex-col items-center justify-center text-muted-foreground">
+                  <div className="flex h-[220px] flex-col items-center justify-center text-muted-foreground">
                     <CalendarDays className="h-8 w-8 mb-2 opacity-50" />
                     <p className="text-xs">No upcoming events</p>
                   </div>
                 ) : (
                   events.map((event) => (
-                    <div key={event.id} className="flex items-start gap-3 p-4 transition-colors hover:bg-secondary/50">
+                    <div key={event.id} className="flex h-[74px] items-start gap-3 p-4 transition-colors hover:bg-secondary/50">
                       <div className="mt-0.5 flex h-8 w-8 shrink-0 flex-col items-center justify-center rounded-md border bg-card">
                         <span className="text-[10px] font-bold text-accent leading-none uppercase">
                           {new Date(event.event_year, event.event_month - 1).toLocaleString('default', { month: 'short' })}
@@ -460,9 +463,9 @@ const Home = () => {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.35 }} className="mt-10">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-foreground">Recently Added Papers</h2>
-            <Link href="/practice" className="text-sm font-medium text-accent hover:underline" prefetch={false}>
+            {/* <Link href="/practice" className="text-sm font-medium text-accent hover:underline" prefetch={false}>
               View all
-            </Link>
+            </Link> */}
           </div>
           
           <div className="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1 snap-x">
@@ -483,6 +486,7 @@ const Home = () => {
               <p className="text-sm text-muted-foreground py-4">No recent papers available.</p>
             ) : (
               recentPapers.map((paper) => (
+                <Link href={paper.pdf_url} prefetch={false} target="_blank">
                 <Card key={paper.id} className="group flex-shrink-0 w-52 snap-start cursor-pointer border-border transition-all hover:shadow-md hover:border-accent/30">
                   <CardContent className="p-0">
                     <div className="relative flex aspect-video w-full items-center justify-center bg-secondary rounded-t-lg border-b">
@@ -491,7 +495,7 @@ const Home = () => {
                           <FileText className="h-5 w-5 text-accent" />
                         </div>
                         <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent uppercase tracking-wider line-clamp-1">
-                          {paper.type}
+                          {paper.type ?? "Study Planner"}
                         </span>
                       </div>
                     </div>
@@ -512,6 +516,7 @@ const Home = () => {
                     </div>
                   </CardContent>
                 </Card>
+                </Link>
               ))
             )}
           </div>

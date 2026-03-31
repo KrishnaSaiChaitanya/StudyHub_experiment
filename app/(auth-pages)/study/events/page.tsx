@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/utils/supabase/client"; // Adjust to your Supabase client path
 import { useRouter } from "next/navigation";
+import { useStudent } from "@/components/StudentTypeProvider";
 
 
 type DbCalendarEvent = {
@@ -47,6 +48,7 @@ const ExamCalendarView = () => {
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [filterCategory, setFilterCategory] = useState<EventCategory | null>(null);
   
+  const { subjects, loading: studentLoading } = useStudent();
   const [events, setEvents] = useState<DbCalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -55,10 +57,17 @@ const ExamCalendarView = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (studentLoading) return;
+      
       try {
+        setIsLoading(true);
+        // User's subjects + general events
+        const allowedSubjects = ['general', ...subjects];
+        
         const { data: calendarEvents } = await supabase
           .from("calendar_events")
-          .select("*");
+          .select("*")
+          .in('subject', allowedSubjects);
 
         if (calendarEvents) {
           setEvents(calendarEvents);
@@ -71,7 +80,7 @@ const ExamCalendarView = () => {
     };
 
     fetchData();
-  }, [supabase]);
+  }, [supabase, subjects, studentLoading]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1; // 1-12 matching DB schema (event_month)
@@ -153,8 +162,8 @@ const ExamCalendarView = () => {
             onClick={() => setFilterCategory(filterCategory === cat ? null : cat)}
             className={
               filterCategory === cat
-                ? `${CATEGORY_COLORS[cat]} hover:bg-rose-500/20 hover:text-inherit`
-                : "bg-white text-foreground border border-slate-900 hover:bg-slate-100 hover:text-foreground"
+                ? `${CATEGORY_COLORS[cat]} ring-1 !ring-current shadow-sm`
+                : "bg-background text-muted-foreground border-border hover:bg-secondary hover:text-foreground transition-all"
             }
           >
             {cat}

@@ -81,10 +81,12 @@ export interface FacultyCourse {
   id: string; // UUID
   faculty_id: string; // UUID
   name: string;
-  sessions_count: number;
   hours_count: number;
-  enrolled_count: number;
+  views: string;
+  batchtype: string;
+  period: string;
   price: number;
+  course_link: string | null;
   created_at: string;
 }
 

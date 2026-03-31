@@ -89,7 +89,7 @@ const Faculty = () => {
                     transition={{ delay: i * 0.06 }}
                     className="rounded-xl border border-border bg-card p-5 shadow-card transition-all hover:shadow-card-hover hover:border-accent/30"
                   >
-                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-sm font-bold text-primary-foreground" style={{backgroundImage: `url(${f.profile_picture})`, backgroundSize: "cover", backgroundPosition: "center"}}>
                       {f.profile_picture ? (
                         <img src={f.profile_picture} alt={f.name} className="h-full w-full object-cover" />
                       ) : (

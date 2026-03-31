@@ -23,6 +23,8 @@ interface Question {
 interface Test {
   id: string;
   name: string;
+  duration?: number;
+  questions_count: number;
 }
 
 interface MockExamProps {
@@ -30,14 +32,13 @@ interface MockExamProps {
   onExit: () => void;
 }
 
-const EXAM_DURATION = 30 * 60; // 30 minutes
 
 const letterMap = ['A', 'B', 'C', 'D'];
 
 const MockExam = ({ testId, onExit }: MockExamProps) => {
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [timeLeft, setTimeLeft] = useState(EXAM_DURATION);
+  const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [submitted, setSubmitted] = useState(false);
   const [showResults, setShowResults] = useState(false);
   
@@ -74,6 +75,10 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
 
         setTest(testData);
         setQuestions(qData || []);
+        
+        // Use test duration from DB (in minutes) or fallback to questions count * 1.5
+        const durationInMinutes = testData.duration || (qData ? qData.length * 1.5 : 30);
+        setTimeLeft(Math.floor(durationInMinutes * 60));
 
         if (userRes.data.user) {
           const uid = userRes.data.user.id;
@@ -277,7 +282,9 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
               <p className="text-xs text-muted-foreground">Attempted</p>
             </div>
             <div className="rounded-lg bg-secondary p-4">
-              <p className="text-2xl font-bold text-card-foreground">{formatTime(EXAM_DURATION - timeLeft)}</p>
+              <p className="text-2xl font-bold text-card-foreground">
+                {test ? formatTime((test.duration || questions.length * 1.5) * 60 - timeLeft) : "--:--"}
+              </p>
               <p className="text-xs text-muted-foreground">Time Taken</p>
             </div>
           </div>
@@ -291,9 +298,16 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
               return (
                 <div key={sq.id} className={`rounded-lg border p-3 ${isCorrect ? "border-accent/30 bg-accent/5" : "border-destructive/30 bg-destructive/5"}`}>
                   <p className="text-xs font-medium text-card-foreground">{i + 1}. {sq.question_text}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Your answer: <span className={isCorrect ? "text-accent" : "text-destructive"}>{uA ? opts[answers[i]] : "Not answered"}</span>
-                    {!isCorrect && <> &middot; Correct: <span className="text-accent">{opts[correctIdx]}</span></>}
+                  <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {opts.map((o, idx) => (o && o.trim() !== "") && (
+                       <div key={idx} className={`text-xs p-1.5 rounded ${sq.correct_answer === letterMap[idx] ? "bg-accent/10 border border-accent/20 text-accent font-medium" : "text-muted-foreground"}`}>
+                         {letterMap[idx]}. {o}
+                       </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground border-t border-border/40 pt-2">
+                    Your answer: <span className={isCorrect ? "text-accent" : (uA ? "text-destructive" : "text-muted-foreground italic")}>{uA ? opts[answers[i]] : "Not answered"}</span>
+                    {!isCorrect && <> &middot; Correct: <span className="text-accent font-medium">{opts[correctIdx]}</span></>}
                   </p>
                 </div>
               );
@@ -351,17 +365,20 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
               value={answers[currentQ]?.toString()}
               onValueChange={(v) => setAnswers({ ...answers, [currentQ]: parseInt(v) })}
             >
-              {qOptions.map((opt, i) => (
-                <label
-                  key={`opt-${i}`}
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-all ${
-                    answers[currentQ] === i ? "border-accent bg-accent/5" : "border-border hover:border-muted-foreground/30"
-                  }`}
-                >
-                  <RadioGroupItem value={i.toString()} />
-                  <span className="text-sm text-card-foreground">{opt}</span>
-                </label>
-              ))}
+              {qOptions.map((opt, i) => {
+                if (!opt || opt.trim() === "") return null;
+                return (
+                  <label
+                    key={`opt-${i}`}
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-all ${
+                      answers[currentQ] === i ? "border-accent bg-accent/5" : "border-border hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <RadioGroupItem value={i.toString()} />
+                    <span className="text-sm text-card-foreground">{opt}</span>
+                  </label>
+                );
+              })}
             </RadioGroup>
           </Card>
         </motion.div>

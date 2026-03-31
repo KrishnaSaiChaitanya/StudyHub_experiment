@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, SlidersHorizontal, Bookmark, BookOpen, Download, Eye, Star, ArrowLeft, FileText, Calendar, User, Loader2 } from "lucide-react";
+import { Search, SlidersHorizontal, Bookmark, BookOpen, Download, Eye, Star, ArrowLeft, FileText, Calendar, User, Loader2, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
@@ -8,6 +8,7 @@ import { useStudent } from "./StudentTypeProvider";
 import { formatSubjectName } from "@/utils/subjects";
 import { useSearchParams } from "next/navigation";
 import { ConfirmModal } from "./ConfirmModal";
+import Link from "next/link";
 
 interface PlannerType {
   id: string;
@@ -130,6 +131,50 @@ console.log(plannersData, "data");
       .eq('planner_id', plannerToUnbookmark);
     
     setPlannerToUnbookmark(null);
+  };
+
+  const handleDownload = async (planner: PlannerType) => {
+    try {
+      // 1. Try to fetch and download the file (to force download instead of just opening)
+      const response = await fetch(planner.pdf_url);
+      if (!response.ok) throw new Error('Network response was not ok');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${planner.title.replace(/[/\\?%*:|"<>]/g, '-')}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      // 2. Increment download count in Supabase
+      const { error } = await supabase
+        .from('study_planners')
+        .update({ downloads: planner.downloads + 1 })
+        .eq('id', planner.id);
+
+      if (!error) {
+        setPlanners(prev => prev.map(p => 
+          p.id === planner.id ? { ...p, downloads: p.downloads + 1 } : p
+        ));
+      }
+    } catch (error) {
+      console.error("Download failed, opening in new tab instead:", error);
+      // Fallback: just open in new tab
+      window.open(planner.pdf_url, '_blank');
+      
+      // Still try to increment if they opened it
+      await supabase
+        .from('study_planners')
+        .update({ downloads: planner.downloads + 1 })
+        .eq('id', planner.id);
+        
+      setPlanners(prev => prev.map(p => 
+        p.id === planner.id ? { ...p, downloads: p.downloads + 1 } : p
+      ));
+    }
   };
 
   const filtered = planners.filter(p => {
@@ -267,8 +312,8 @@ console.log(plannersData, "data");
             {/* Planner cards */}
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((planner, i) => (
+                <Link href={planner.pdf_url} key={planner.id} target="_blank">
                 <motion.div
-                  key={planner.id}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
@@ -313,17 +358,30 @@ console.log(plannersData, "data");
 
                   {/* Actions */}
                   <div className="mt-4 flex items-center gap-2 pt-4  border-border mt-auto">
-                    <Button size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => window.open(planner.pdf_url, '_blank')}>
+                    <Button 
+                      size="sm" 
+                      className="flex-1 gap-1.5 text-xs" 
+                      onClick={() => handleDownload(planner)}
+                    >
                       <Download className="h-3.5 w-3.5" /> Download
                     </Button>
                     <button
+                      onClick={() => window.open(planner.pdf_url, '_blank')}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors hover:bg-secondary shrink-0"
+                      title="Open in new tab"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                    <button
                       onClick={() => toggleBookmark(planner.id)}
                       className="flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors hover:bg-secondary shrink-0"
+                      title={bookmarks.includes(planner.id) ? "Remove Bookmark" : "Add Bookmark"}
                     >
                       <Bookmark className={`h-3.5 w-3.5 ${bookmarks.includes(planner.id) ? "fill-accent text-accent" : "text-muted-foreground"}`} />
                     </button>
                   </div>
                 </motion.div>
+                </Link>
               ))}
             </div>
 

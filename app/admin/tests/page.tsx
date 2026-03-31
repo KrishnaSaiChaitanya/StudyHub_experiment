@@ -33,6 +33,8 @@ export default function TestsDashboard() {
   // Form State - Test
   const [testName, setTestName] = useState("");
   const [testCategory, setTestCategory] = useState("");
+  const [testDuration, setTestDuration] = useState<string>("");
+  const [testLevel, setTestLevel] = useState<string>("standard");
 
   // Form State - Question
   const [questionText, setQuestionText] = useState("");
@@ -69,6 +71,8 @@ export default function TestsDashboard() {
   const handleEditTest = (test: any) => {
     setTestName(test.name);
     setTestCategory(test.category);
+    setTestDuration(test.duration?.toString() || "");
+    setTestLevel(test.level || "standard");
     setEditingTestId(test.id);
     setShowAddTest(true);
   };
@@ -80,6 +84,8 @@ export default function TestsDashboard() {
     const payload = {
       name: testName,
       category: testCategory,
+      duration: testDuration ? parseInt(testDuration) : null,
+      level: testLevel,
     };
 
     let error;
@@ -95,7 +101,7 @@ export default function TestsDashboard() {
       toast({ title: `Error ${editingTestId ? 'updating' : 'adding'} test`, description: error.message, variant: "destructive" });
     } else {
       toast({ title: `Test ${editingTestId ? 'updated' : 'added'}!` });
-      setTestName(""); setTestCategory("");
+      setTestName(""); setTestCategory(""); setTestDuration(""); setTestLevel("standard");
       setEditingTestId(null);
       setShowAddTest(false);
       fetchTests();
@@ -198,15 +204,15 @@ export default function TestsDashboard() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Option B</label>
-                    <Input required value={optionB} onChange={e => setOptionB(e.target.value)} />
+                    <Input value={optionB} onChange={e => setOptionB(e.target.value)} placeholder="Optional" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Option C</label>
-                    <Input required value={optionC} onChange={e => setOptionC(e.target.value)} />
+                    <Input value={optionC} onChange={e => setOptionC(e.target.value)} placeholder="Optional" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Option D</label>
-                    <Input required value={optionD} onChange={e => setOptionD(e.target.value)} />
+                    <Input value={optionD} onChange={e => setOptionD(e.target.value)} placeholder="Optional" />
                   </div>
                 </div>
                 <div className="space-y-2 w-full md:w-1/2">
@@ -214,10 +220,10 @@ export default function TestsDashboard() {
                   <Select required value={correctAnswer} onValueChange={setCorrectAnswer}>
                     <SelectTrigger><SelectValue placeholder="Select correct option" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="A">Option A</SelectItem>
-                      <SelectItem value="B">Option B</SelectItem>
-                      <SelectItem value="C">Option C</SelectItem>
-                      <SelectItem value="D">Option D</SelectItem>
+                      <SelectItem value="A">Option A {optionA && `(${optionA.slice(0, 20)}${optionA.length > 20 ? '...' : ''})`}</SelectItem>
+                      {optionB && <SelectItem value="B">Option B ({optionB.slice(0, 20)}{optionB.length > 20 ? '...' : ''})</SelectItem>}
+                      {optionC && <SelectItem value="C">Option C ({optionC.slice(0, 20)}{optionC.length > 20 ? '...' : ''})</SelectItem>}
+                      {optionD && <SelectItem value="D">Option D ({optionD.slice(0, 20)}{optionD.length > 20 ? '...' : ''})</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
@@ -322,6 +328,22 @@ export default function TestsDashboard() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Duration (mins)</label>
+                <Input type="number" value={testDuration} onChange={e => setTestDuration(e.target.value)} placeholder="E.g. 60" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Level</label>
+                <Select required value={testLevel} onValueChange={setTestLevel}>
+                  <SelectTrigger><SelectValue placeholder="Select Level" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="advanced">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="col-span-full pt-2">
                 <Button type="submit" disabled={savingTest}>
                   {savingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingTestId ? "Update Test" : "Save Test")}
@@ -341,9 +363,11 @@ export default function TestsDashboard() {
               <TableRow>
                 <TableHead>Test Name</TableHead>
                 <TableHead>Category</TableHead>
-                <TableHead>Questions Count</TableHead>
+                <TableHead>Level</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Questions</TableHead>
                 <TableHead className="w-[150px]">Actions</TableHead>
-              </TableRow>
+          </TableRow>
             </TableHeader>
             <TableBody>
               {tests.length === 0 && (
@@ -355,6 +379,8 @@ export default function TestsDashboard() {
                 <TableRow key={t.id}>
                   <TableCell className="font-medium">{t.name}</TableCell>
                   <TableCell>{formatSubjectName(t.category as any)}</TableCell>
+                  <TableCell className="capitalize">{t.level || 'standard'}</TableCell>
+                  <TableCell>{t.duration ? `${t.duration}m` : '-'}</TableCell>
                   <TableCell>{t.questions_count}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
