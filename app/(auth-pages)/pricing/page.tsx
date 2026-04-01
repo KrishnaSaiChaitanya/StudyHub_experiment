@@ -80,7 +80,7 @@ const Pricing = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const supabase = createClient();
-  const { checkSubscription } = useSubscription();
+  const { checkSubscription, planName, expiryDate } = useSubscription();
 
   const loadRazorpay = () => {
     return new Promise((resolve) => {
@@ -145,7 +145,8 @@ const Pricing = () => {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_subscription_id: response.razorpay_subscription_id,
               razorpay_signature: response.razorpay_signature,
-              plan_id: currentPlan.planId
+              plan_id: currentPlan.planId,
+              plan_name: currentPlan.name
             }),
           });
           
@@ -211,8 +212,17 @@ const Pricing = () => {
             transition={{ delay: 0.5 }}
             className="mt-4 text-muted-foreground"
           >
-            Welcome to <span className="font-semibold text-accent">Study Hub Pro</span>. 
-            You now have unlimited access to all premium features.
+            You have opted for <span className="font-semibold text-accent">{planName || (proPlans.find(p => p.id === selectedPlan)?.name)} Plan</span>. 
+            {expiryDate && (
+              <span className="block mt-2 text-sm italic">
+                Valid till: {new Date(expiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+            )}
+            {!expiryDate && (
+              <span className="block mt-2 text-sm italic">
+                Access is being activated...
+              </span>
+            )}
           </motion.p>
           
           <motion.div

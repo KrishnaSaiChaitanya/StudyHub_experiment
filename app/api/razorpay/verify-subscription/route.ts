@@ -35,6 +35,26 @@ export async function POST(req: Request) {
     }
 
     const plan_id = requestedPlanId || process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID;
+    const plan_name = body.plan_name || "Pro Plan";
+
+    let expiry_date = null;
+    if (plan_name.toLowerCase().includes("monthly")) {
+      expiry_date = new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString();
+    } else if (plan_name.toLowerCase().includes("annual")) {
+      expiry_date = new Date(Date.now() + 366 * 24 * 60 * 60 * 1000).toISOString();
+    } else if (plan_name.toLowerCase().includes("attempt")) {
+      // Fetch latest exam date
+      const { data: examData } = await supabase
+        .from("exam_date")
+        .select("last_exam_date")
+        .order("last_exam_date", { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (examData?.last_exam_date) {
+        expiry_date = new Date(examData.last_exam_date).toISOString();
+      }
+    }
 
     // Signature is valid, update Supabase
     const { error } = await supabase.from("subscriptions").upsert({
@@ -42,6 +62,8 @@ export async function POST(req: Request) {
       razorpay_subscription_id,
       status: "active",
       plan_id: plan_id,
+      plan_name,
+      expiry_date,
       updated_at: new Date().toISOString(),
     });
 

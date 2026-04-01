@@ -31,7 +31,7 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
-  const { isSubscribed: isPro } = useSubscription();
+  const { isSubscribed: isPro, planName, expiryDate } = useSubscription();
   const { studentLevel, refreshProfile } = useStudent();
   
   const [editName, setEditName] = useState("");
@@ -66,7 +66,7 @@ const Navbar = () => {
         });
         if (data?.user) {
           setUser(data.user);
-          cacheAuthState(data.user, getCachedSubscription() ?? isPro);
+          cacheAuthState(data.user, isPro, planName || undefined, expiryDate || undefined);
         }
       }
 
@@ -164,7 +164,7 @@ const Navbar = () => {
             <h4 className="font-medium leading-none text-sm mb-3">Current Plan</h4>
             {isPro ? (
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">Pro Plan Active</span>
+                <span className="text-sm font-medium text-foreground">{planName || "Pro Plan Active"}</span>
                 <Crown className="h-4 w-4 text-accent" />
               </div>
             ) : (
@@ -279,7 +279,7 @@ const Navbar = () => {
               {isPro && (
                 <div className="mt-4 flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-accent-foreground bg-accent rounded-lg shadow-sm justify-center">
                   <Crown className="h-4 w-4" />
-                  PRO PLAN ACTIVE
+                  {planName?.toUpperCase() || "PRO PLAN ACTIVE"}
                 </div>
               )}
               <div className={`${isPro ? 'mt-2' : 'mt-4'} mb-2 flex flex-col gap-2`}>

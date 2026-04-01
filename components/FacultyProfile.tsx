@@ -126,9 +126,9 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
                       <h3 className="mt-3 text-sm font-semibold text-card-foreground">{plan.title}</h3>
                       <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                         <span className="rounded-full bg-secondary px-2 py-0.5">{plan.pages} Pages</span>
-                        <span className="rounded-full bg-secondary px-2 py-0.5 flex items-center gap-1">
+                        {/* <span className="rounded-full bg-secondary px-2 py-0.5 flex items-center gap-1">
                           <Star className="h-2.5 w-2.5 fill-muted-foreground" /> {plan.rating}
-                        </span>
+                        </span> */}
                         <span className="rounded-full bg-secondary px-2 py-0.5">{plan.downloads} DLs</span>
                       </div>
                     </div>

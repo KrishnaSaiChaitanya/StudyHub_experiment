@@ -15,21 +15,31 @@ export const getCachedUser = () => {
   }
 };
 
+export const SUBSCRIPTION_DATA_CACHE_KEY = "studyhub_subscription_data";
+
 export const getCachedSubscription = () => {
   if (!isBrowser) return null;
   try {
-    const raw = window.localStorage.getItem(SUBSCRIPTION_CACHE_KEY);
-    return raw !== null ? JSON.parse(raw) : null;
+    const rawSub = window.localStorage.getItem(SUBSCRIPTION_CACHE_KEY);
+    const rawData = window.localStorage.getItem(SUBSCRIPTION_DATA_CACHE_KEY);
+    return {
+      isSubscribed: rawSub !== null ? JSON.parse(rawSub) : null,
+      planName: rawData ? JSON.parse(rawData).planName : null,
+      expiryDate: rawData ? JSON.parse(rawData).expiryDate : null
+    };
   } catch {
-    return null;
+    return { isSubscribed: null, planName: null, expiryDate: null };
   }
 };
 
-export const cacheAuthState = (user: any, isSubscribed: boolean) => {
+export const cacheAuthState = (user: any, isSubscribed: boolean, planName?: string, expiryDate?: string) => {
   if (!isBrowser) return;
   try {
     window.localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
     window.localStorage.setItem(SUBSCRIPTION_CACHE_KEY, JSON.stringify(isSubscribed));
+    if (planName || expiryDate) {
+      window.localStorage.setItem(SUBSCRIPTION_DATA_CACHE_KEY, JSON.stringify({ planName, expiryDate }));
+    }
   } catch {
     // ignore localStorage failures
   }
@@ -40,6 +50,7 @@ export const clearAuthCache = () => {
   try {
     window.localStorage.removeItem(USER_CACHE_KEY);
     window.localStorage.removeItem(SUBSCRIPTION_CACHE_KEY);
+    window.localStorage.removeItem(SUBSCRIPTION_DATA_CACHE_KEY);
   } catch {
     // ignore localStorage failures
   }
@@ -55,13 +66,13 @@ export const fetchAndCacheAuthState = async (supabase: SupabaseClient) => {
 
     const { data: subscriptionData, error: subError } = await supabase
       .from("subscriptions")
-      .select("status")
+      .select("status, plan_name, expiry_date")
       .eq("id", user.id)
       .single();
 
     const isSubscribed = Boolean(subscriptionData?.status === "active");
-    cacheAuthState(user, isSubscribed);
-    return { user, isSubscribed };
+    cacheAuthState(user, isSubscribed, subscriptionData?.plan_name, subscriptionData?.expiry_date);
+    return { user, isSubscribed, planName: subscriptionData?.plan_name, expiryDate: subscriptionData?.expiry_date };
   } catch (error) {
     clearAuthCache();
     return { user: null, isSubscribed: false };
