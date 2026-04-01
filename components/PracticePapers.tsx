@@ -21,7 +21,7 @@ type DbPaper = {
   level: StudentLevel;
   type: string;
   pages: number;
-  exam_year: number;
+  exam_year: string
   pdf_url: string;
   created_at: string;
 };
