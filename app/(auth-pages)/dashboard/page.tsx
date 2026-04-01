@@ -392,9 +392,9 @@ const Home = () => {
                       </DialogClose>
                       <Button
                         onClick={handleSavePreference}
-                        disabled={!selectedQuickAccess.length || quickAccessMutation.isLoading}
+                        disabled={!selectedQuickAccess.length}
                       >
-                        {quickAccessMutation.isLoading ? 'Saving...' : 'Save Preference'}
+                        Save Preference
                       </Button>
                     </DialogFooter>
                   </DialogContent>
