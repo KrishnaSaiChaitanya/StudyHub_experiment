@@ -21,9 +21,9 @@ const PYQ = () => (
       </div>
     </section>
     <PaperBrowser 
-          title="Mock Test Papers" 
-          subtitle="Browse, bookmark, and download ICAI mock test papers." 
-          paperType="mtp" 
+          title="Previous Year Questions" 
+          subtitle="Browse, bookmark, and download ICAI previous year questions." 
+          paperType="pyq" 
         />
     <Footer />
   </div>

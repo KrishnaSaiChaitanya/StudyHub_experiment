@@ -1,4 +1,4 @@
-import { Geist } from "next/font/google";
+import { Poppins } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -29,9 +29,11 @@ const defaultUrl = process.env.VERCEL_URL
 //   },
 // };
 
-const geistSans = Geist({
+const poppins = Poppins({
   display: "swap",
   subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-poppins",
 });
 
 export default function RootLayout({
@@ -40,8 +42,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={geistSans.className} suppressHydrationWarning>
-      <body>
+    <html lang="en" className={`${poppins.variable} font-sans`} suppressHydrationWarning>
+      <body className="font-sans">
        
           <main className="flex flex-col items-center">
             <QueryProvider>

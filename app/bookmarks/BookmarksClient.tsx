@@ -61,28 +61,31 @@ const typeBadgeClass = {
 };
 
 interface BookmarksClientProps {
-  initialNotes: DbNote[];
-  initialBookmarks: BookmarkItem[];
   userId: string;
 }
 
-const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksClientProps) => {
+const BookmarksClient = ({ userId }: BookmarksClientProps) => {
   const supabase = createClient();
   const router = useRouter();
   
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("bookmarks");
+  
+  const [notes, setNotes] = useState<DbNote[]>([]);
+  const [rawBookmarks, setRawBookmarks] = useState<BookmarkItem[]>([]);
+  
+  const [isBookmarksLoaded, setIsBookmarksLoaded] = useState(false);
+  const [isNotesLoaded, setIsNotesLoaded] = useState(false);
+  const [isNotesLoading, setIsNotesLoading] = useState(false);
 
   const { subjects, loading: studentLoading } = useStudent();
 
-  const [notes, setNotes] = useState<DbNote[]>(initialNotes);
-  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>(initialBookmarks);
-
-  // Fetch bookmarks when subjects change
+  // Fetch bookmarks when activeTab is bookmarks and NOT loaded
   useEffect(() => {
     const fetchBookmarks = async () => {
-      if (!userId || studentLoading) return;
-
+      if (!userId || activeTab !== "bookmarks" || isBookmarksLoaded) return;
+      
       setIsLoading(true);
       try {
         const { data: bookmarksData, error } = await supabase
@@ -100,28 +103,16 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
         if (error) throw error;
 
         if (bookmarksData) {
-          const filtered = bookmarksData.filter((b: any) => {
-            if (b.study_planners?.category) {
-              return subjects.includes(b.study_planners.category);
-            }
-            if (b.practice_papers?.subject) {
-              return subjects.includes(b.practice_papers.subject);
-            }
-            if (b.questions?.tests?.category) {
-              return subjects.includes(b.questions.tests.category);
-            }
-            return true;
-          });
-
-          const formatted: BookmarkItem[] = filtered.map((b: any) => {
+          const formatted: BookmarkItem[] = bookmarksData.map((b: any) => {
             if (b.study_planners) {
               return {
                 id: b.id,
                 title: b.study_planners.title,
                 type: "pdf" as const,
                 source: formatSubjectName(b.study_planners.category as any),
-                savedAt: new Date(b.created_at).toISOString().split("T")[0],
+                savedAt: b.created_at,
                 url: b.study_planners.pdf_url,
+                subject: b.study_planners.category
               };
             } else if (b.practice_papers) {
               return {
@@ -129,8 +120,9 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
                 title: b.practice_papers.title,
                 type: b.practice_papers.type as "rtp" | "pyq" | "mtp",
                 source: formatSubjectName(b.practice_papers.subject as any),
-                savedAt: new Date(b.created_at).toISOString().split("T")[0],
+                savedAt: b.created_at,
                 url: b.practice_papers.pdf_url,
+                subject: b.practice_papers.subject
               };
             } else if (b.questions) {
               const q = b.questions;
@@ -139,14 +131,16 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
                 title: q.question_text.substring(0, 60) + (q.question_text.length > 60 ? "..." : ""),
                 type: "question" as const,
                 source: q.tests ? `${q.tests.name} (${formatSubjectName(q.tests.category as any)})` : "Mock Test",
-                savedAt: new Date(b.created_at).toISOString().split("T")[0],
+                savedAt: b.created_at,
                 targetId: q.test_id,
+                subject: q.tests?.category
               };
             }
             return null;
           }).filter(Boolean) as BookmarkItem[];
 
-          setBookmarks(formatted);
+          setRawBookmarks(formatted);
+          setIsBookmarksLoaded(true);
         }
       } catch (error) {
         console.error("Error fetching bookmarks:", error);
@@ -156,7 +150,35 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
     };
 
     fetchBookmarks();
-  }, [userId, subjects, studentLoading, supabase]);
+  }, [userId, activeTab, isBookmarksLoaded, supabase]);
+
+  // Fetch notes when activeTab is notes and NOT loaded
+  useEffect(() => {
+    const fetchNotes = async () => {
+      if (!userId || activeTab !== "notes" || isNotesLoaded) return;
+
+      setIsNotesLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("notes")
+          .select("*")
+          .eq("user_id", userId)
+          .order("updated_at", { ascending: false });
+
+        if (error) throw error;
+        if (data) {
+          setNotes(data);
+          setIsNotesLoaded(true);
+        }
+      } catch (error) {
+        console.error("Error fetching notes:", error);
+      } finally {
+        setIsNotesLoading(false);
+      }
+    };
+
+    fetchNotes();
+  }, [userId, activeTab, isNotesLoaded, supabase]);
   
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [newNote, setNewNote] = useState(false);
@@ -236,7 +258,7 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
 
   const executeDeleteBookmark = async (id: string) => {
     // Optimistic UI update
-    setBookmarks(prev => prev.filter(b => b.id !== id));
+    setRawBookmarks(prev => prev.filter(b => b.id !== id));
     await supabase.from("user_bookmarks").delete().eq("id", id);
   };
 
@@ -260,6 +282,17 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
     }
   };
 
+  // Compute filtered bookmarks based on raw bookmarks, subjects, search and type
+  const bookmarks = rawBookmarks.filter(b => {
+    if (b.subject) {
+      return (subjects as any).includes(b.subject);
+    }
+    return true;
+  }).map(b => ({
+    ...b,
+    savedAt: new Date(b.savedAt).toISOString().split("T")[0]
+  }));
+
   const filteredBookmarks = bookmarks.filter((b) => {
     const matchesSearch =
       b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -277,12 +310,12 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
       <section className="bg-primary py-16">
         <div className="container">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl text-center">
-              <button
-                    onClick={onBack}
-                    className="mb-4 flex items-center gap-1.5 text-xs text-primary-foreground/50  mx-auto hover:text-primary-foreground transition-colors"
-                  >
-                    <ArrowLeft className="h-3.5 w-3.5" /> Back to Study Tools
-                  </button>
+            <button
+              onClick={onBack}
+              className="mb-4 flex items-center gap-1.5 text-xs text-primary-foreground/50 mx-auto hover:text-primary-foreground transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to Study Tools
+            </button>
             <h1 className="text-3xl font-bold text-primary-foreground">
               Notes & <span className="text-accent">Bookmarks</span>
             </h1>
@@ -295,7 +328,7 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
 
       <section className="container max-w-4xl py-10">
         <ProFeatureLock label="Unlock Bookmarks with Pro Subscription">
-          <Tabs defaultValue="bookmarks" className="w-full">
+          <Tabs defaultValue="bookmarks" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-6 w-full max-w-xs">
               <TabsTrigger value="bookmarks" className="flex-1 gap-1.5">
                 <Bookmark className="h-3.5 w-3.5" /> Bookmarks
@@ -305,7 +338,6 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
               </TabsTrigger>
             </TabsList>
 
-            {/* Bookmarks Tab */}
             <TabsContent value="bookmarks">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="relative flex-1">
@@ -403,14 +435,13 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
               )}
             </TabsContent>
 
-            {/* Notes Tab */}
             <TabsContent value="notes">
               <div className="mb-5 flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {!isLoading && `${notes.length} note${notes.length !== 1 ? "s" : ""}`}
+                  {!isNotesLoading && `${notes.length} note${notes.length !== 1 ? "s" : ""}`}
                 </p>
                 {!newNote && (
-                  <Button size="sm" onClick={() => setNewNote(true)} className="gap-1.5" disabled={isLoading}>
+                  <Button size="sm" onClick={() => setNewNote(true)} className="gap-1.5" disabled={isNotesLoading}>
                     <Plus className="h-3.5 w-3.5" /> New Note
                   </Button>
                 )}
@@ -446,7 +477,7 @@ const BookmarksClient = ({ initialNotes, initialBookmarks, userId }: BookmarksCl
                 </motion.div>
               )}
 
-              {isLoading ? (
+              {isNotesLoading ? (
                 <div className="flex h-64 items-center justify-center">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>

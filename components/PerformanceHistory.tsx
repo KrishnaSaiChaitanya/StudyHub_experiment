@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, TrendingUp, Target, Clock, Calendar, BarChart3, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,9 +11,25 @@ interface Attempt {
   score: number;
   total_questions: number;
   completed_at: string;
+  time_taken?: number;
   tests: {
     name: string;
     category: string;
+  };
+}
+
+interface AttemptAnswer {
+  id: string;
+  selected_option: string;
+  is_correct: boolean;
+  questions: {
+    question_text: string;
+    option_a: string;
+    option_b: string;
+    option_c: string;
+    option_d: string;
+    correct_answer: string;
+    notes: string;
   };
 }
 
@@ -29,10 +45,52 @@ const formatCategory = (category: string) => {
     .join(' ');
 };
 
+const formatTimeTaken = (seconds: number) => {
+  if (!seconds) return "N/A";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
+};
+
 const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
   const [history, setHistory] = useState<Attempt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedAttempt, setSelectedAttempt] = useState<Attempt | null>(null);
+  const [attemptAnswers, setAttemptAnswers] = useState<AttemptAnswer[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const supabase = createClient();
+
+  const fetchAttemptDetails = async (attempt: Attempt) => {
+    setSelectedAttempt(attempt);
+    setLoadingDetails(true);
+    try {
+      const { data, error } = await supabase
+        .from('test_attempt_answers')
+        .select(`
+          id,
+          selected_option,
+          is_correct,
+          questions (
+            question_text,
+            option_a,
+            option_b,
+            option_c,
+            option_d,
+            correct_answer,
+            notes
+          )
+        `)
+        .eq('attempt_id', attempt.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setAttemptAnswers(data as unknown as AttemptAnswer[] || []);
+    } catch (error) {
+      console.error("Error fetching attempt details:", error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -47,6 +105,7 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
             score,
             total_questions,
             completed_at,
+            time_taken,
             tests (
               name,
               category
@@ -109,7 +168,7 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
             { icon: BarChart3, label: "Tests Taken", value: totalTests.toString() },
             { icon: Target, label: "Avg Score", value: `${avgScore}%` },
             { icon: TrendingUp, label: "Best Score", value: `${bestScore}%` },
-            { icon: Clock, label: "Avg Time", value: "N/A" },
+            { icon: Clock, label: "Avg Time", value: totalTests > 0 ? formatTimeTaken(Math.round(history.reduce((a, b) => a + (b.time_taken || 0), 0) / totalTests)) : "N/A" },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -183,11 +242,14 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
                   >
-                    <Card className="border-border bg-card p-4">
+                    <Card 
+                      className="border-border bg-card p-4 cursor-pointer hover:bg-secondary/20 transition-colors group"
+                      onClick={() => fetchAttemptDetails(test)}
+                    >
                       <div className="flex items-center justify-between gap-4">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="text-sm font-medium text-foreground">{test.tests?.name}</h4>
+                            <h4 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{test.tests?.name}</h4>
                             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium whitespace-nowrap ${badge.cls}`}>
                               {badge.label}
                             </span>
@@ -196,7 +258,11 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
                             <span className="flex items-center gap-1">
                               {formatCategory(test.tests?.category)}
                             </span>
-                            <span className="flex items-center gap-1 before:content-['•'] before:mr-2">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatTimeTaken(test.time_taken || 0)}
+                            </span>
+                            <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(test.completed_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                             </span>
@@ -214,6 +280,104 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
                 );
               })}
             </div>
+
+            {/* Attempt Details Modal Overlay */}
+            <AnimatePresence>
+              {selectedAttempt && (
+                <motion.div 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+                  onClick={() => setSelectedAttempt(null)}
+                >
+                  <motion.div 
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    className="bg-card border border-border w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-xl shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="p-6 border-b border-border flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-foreground">{selectedAttempt.tests?.name}</h3>
+                        <p className="text-xs text-muted-foreground">Attempted on {new Date(selectedAttempt.completed_at).toLocaleString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-2xl font-black ${getScoreColor(Math.round((selectedAttempt.score/selectedAttempt.total_questions)*100))}`}>
+                          {selectedAttempt.score}/{selectedAttempt.total_questions}
+                        </div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Total Score</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                      {loadingDetails ? (
+                        <div className="flex flex-col items-center justify-center py-20">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <p className="mt-2 text-sm text-muted-foreground">Loading answers...</p>
+                        </div>
+                      ) : (
+                        attemptAnswers.map((ans, i) => {
+                          const q = ans.questions;
+                          const options = [
+                            { key: 'A', text: q.option_a },
+                            { key: 'B', text: q.option_b },
+                            { key: 'C', text: q.option_c },
+                            { key: 'D', text: q.option_d },
+                          ];
+                          
+                          return (
+                            <div key={ans.id} className="space-y-3">
+                              <div className="flex items-start gap-3">
+                                <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${ans.is_correct ? "bg-accent/20 text-accent" : "bg-destructive/20 text-destructive"}`}>
+                                  {i + 1}
+                                </span>
+                                <p className="text-sm font-medium text-foreground leading-relaxed">{q.question_text}</p>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-9">
+                                {options.map((opt) => opt.text && (
+                                  <div 
+                                    key={opt.key}
+                                    className={`text-xs p-3 rounded-lg border flex items-center gap-2 ${
+                                      opt.key === q.correct_answer 
+                                        ? "bg-accent/10 border-accent/30 text-accent font-semibold" 
+                                        : opt.key === ans.selected_option
+                                          ? "bg-destructive/10 border-destructive/30 text-destructive font-semibold"
+                                          : "bg-secondary/50 border-border text-muted-foreground"
+                                    }`}
+                                  >
+                                    <span className="w-5 h-5 flex items-center justify-center rounded bg-background/50 border border-current/20">{opt.key}</span>
+                                    {opt.text}
+                                  </div>
+                                ))}
+                              </div>
+                              
+                              <div className="ml-9 p-3 rounded-lg bg-secondary/30 border border-border/50 text-[11px]">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-muted-foreground font-semibold uppercase tracking-tighter">Your Answer: <span className={ans.is_correct ? "text-accent" : "text-destructive"}>{ans.selected_option || 'Skipped'}</span></span>
+                                  <span className="text-muted-foreground font-semibold uppercase tracking-tighter">Correct: <span className="text-accent">{q.correct_answer}</span></span>
+                                </div>
+                                {q.notes && (
+                                  <div className="mt-2 pt-2 border-t border-border/50 text-muted-foreground italic leading-relaxed">
+                                    <span className="font-bold text-foreground not-italic mr-1">Explanation:</span> {q.notes}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                    
+                    <div className="p-4 border-t border-border flex justify-end">
+                      <Button variant="outline" onClick={() => setSelectedAttempt(null)}>Close</Button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         )}
       </motion.div>

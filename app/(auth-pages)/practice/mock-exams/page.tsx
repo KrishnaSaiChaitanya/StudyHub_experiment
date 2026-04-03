@@ -5,7 +5,7 @@ import MockExam from "@/components/MockExam";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
-import { FileText, Clock, ChevronRight, BookOpen, Sparkles, TrendingUp, History } from "lucide-react";
+import { FileText, Clock, ChevronRight, BookOpen, Sparkles, TrendingUp, History, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,11 @@ interface Test {
   duration?: number;
   level?: string;
   updated_at: string;
+  attempts?: {
+    score: number;
+    total_questions: number;
+    completed_at: string;
+  }[];
 }
 
 export default function MockExamsPage() {
@@ -39,10 +44,26 @@ export default function MockExamsPage() {
           testQuery = testQuery.in('category', subjects);
         }
 
-        const { data, error } = await testQuery.order('created_at', { ascending: false });
-        
+        const { data: testData, error } = await testQuery.order('created_at', { ascending: false });
         if (error) throw error;
-        setTests(data || []);
+        
+        // Fetch latest attempts for each test for the current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: attemptData } = await supabase
+            .from('test_attempts')
+            .select('test_id, score, total_questions, completed_at')
+            .eq('user_id', user.id)
+            .order('completed_at', { ascending: false });
+
+          const testsWithAttempts = (testData || []).map((t: any) => ({
+            ...t,
+            attempts: attemptData?.filter(a => a.test_id === t.id) || []
+          }));
+          setTests(testsWithAttempts);
+        } else {
+          setTests(testData || []);
+        }
       } catch (error: any) {
         console.error('Error fetching tests:', error.message);
         toast.error('Failed to load tests');
@@ -120,7 +141,7 @@ export default function MockExamsPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-card/30 p-16 text-center shadow-sm"
+                className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-card/30 p-16 text-center shadow-sm "
               >
                 <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-secondary/50 text-muted-foreground/50 mb-6">
                   <FileText className="h-10 w-10" />
@@ -136,87 +157,106 @@ export default function MockExamsPage() {
                 exit={{ opacity: 0 }}
                 className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
               >
-                {tests.map((test, i) => (
-                 <motion.div
+                {tests.map((test, i) => {
+                  const lastAttempt = test.attempts && test.attempts.length > 0 ? test.attempts[0] : null;
+                  const isAttempted = !!lastAttempt;
+                  const scorePct = lastAttempt ? Math.round((lastAttempt.score / lastAttempt.total_questions) * 100) : 0;
+                  
+                  return (
+                  <motion.div
   key={test.id}
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
-  whileHover={{ y: -5 }} // Subtle lift
-  transition={{ delay: i * 0.08, type: "spring", stiffness: 260, damping: 20 }}
-  className="group relative flex flex-col overflow-hidden rounded-[24px] border border-border/40 bg-card/60 backdrop-blur-sm transition-all duration-300 border-accent/40 hover:shadow-[0_20px_40px_-15px_rgba(var(--accent),0.15)]"
+  whileHover={{ y: -4 }} // Subtler, more modern hover lift
+  transition={{ delay: i * 0.05, duration: 0.3 }}
+ className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md before:pointer-events-none before:absolute before:top-0 before:left-0 before:h-[3px] before:w-full before:bg-[linear-gradient(90deg,hsl(197_100%_50%),transparent)] before:opacity-80 hover:before:opacity-100 after:pointer-events-none after:absolute after:inset-0 after:rounded-2xl after:opacity-0 after:transition-opacity after:duration-300 hover:after:opacity-100 after:bg-[radial-gradient(circle_at_top,hsl(197_100%_50%/0.15),transparent_60%)]"
 >
-  {/* Top Accent Line - appears on hover */}
-  <div className="absolute top-0 left-0 h-[2px] w-0 bg-accent transition-all duration-500 group-hover:w-full" />
-
-  <div className="flex flex-1 flex-col p-6">
-    {/* Header: Icon & Metadata */}
-    <div className="mb-6 flex items-center justify-between">
-      <div className="relative">
-        <div className="absolute inset-0 rounded-xl bg-accent/20 blur-lg transition-opacity opacity-0 group-hover:opacity-100" />
-        <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/80 text-accent ring-1 ring-inset ring-white/10 shadow-sm">
-          <BookOpen className="h-6 w-6 transition-transform duration-500 group-hover:rotate-[-10deg] group-hover:scale-110" />
+  <div className="flex flex-col flex-1">
+    {/* Top Row: Category & Status */}
+    <div className="mb-4 flex items-center justify-between">
+      <Badge 
+        variant="secondary" 
+        className="bg-primary/10 text-primary hover:bg-primary/20 font-semibold shadow-none truncate text-ellipsis w-60 line-clamp-1"
+      >
+        {formatCategory(test.category)}
+      </Badge>
+      
+      {isAttempted && (
+        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>Attempted</span>
         </div>
-      </div>
-      <div className="flex flex-col items-end gap-1">
-        <Badge variant="outline" className="border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider text-accent">
-          {test.questions_count} Questions
-        </Badge>
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60 font-medium">
-          <History className="h-3 w-3" />
-          {formatDistanceToNow(new Date(test.updated_at), { addSuffix: true })}
-        </div>
-      </div>
+      )}
     </div>
 
-    {/* Title & Category */}
-    <div className="mb-6">
-      <h3 className="text-xl font-bold tracking-tight text-card-foreground line-clamp-2 leading-[1.3] transition-colors group-hover:text-accent">
+    {/* Title */}
+    <div className="mb-4">
+      <h3 className="text-xl font-bold tracking-tight text-card-foreground line-clamp-2 transition-colors group-hover:text-primary">
         {test.name}
       </h3>
-      <div className="mt-2 flex items-center gap-2 text-xs font-medium text-muted-foreground/80">
-        <span className="rounded-full bg-secondary px-2.5 py-0.5">
-          {formatCategory(test.category)}
-        </span>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Updated {formatDistanceToNow(new Date(test.updated_at), { addSuffix: true })}
+      </p>
+    </div>
+
+    {/* Quick Stats Grid - Inline and clean */}
+    <div className="mb-6 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+      <div className="flex items-center gap-1.5">
+        <Clock className="h-4 w-4 opacity-70" />
+        <span className="font-medium">{test.duration || test.questions_count * 1.5}m</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <TrendingUp className="h-4 w-4 opacity-70" />
+        <span className="font-medium capitalize">{test.level || 'Standard'}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <FileText className="h-4 w-4 opacity-70" />
+        <span className="font-medium">{test.questions_count} Qs</span>
       </div>
     </div>
 
-    {/* Stats Row */}
-    <div className="mt-auto grid grid-cols-2 gap-4 border-t border-border/50 pt-6">
-      <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500">
-          <Clock className="h-4 w-4" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] uppercase text-muted-foreground font-semibold">Duration</span>
-          <span className="text-sm font-bold">{test.duration || test.questions_count * 1.5}m</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-          <TrendingUp className="h-4 w-4" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] uppercase text-muted-foreground font-semibold">Level</span>
-          <span className="text-sm font-bold capitalize">{test.level || 'Standard'}</span>
-        </div>
-      </div>
-    </div>
+    {/* Spacer to push content up and button down */}
+    <div className="flex-1" />
 
-    {/* Modern Action Button */}
-    <Button 
-      onClick={() => handleStartTest(test.id)}
-      className="mt-6 w-full group/btn relative overflow-hidden rounded-xl bg-primary h-12 transition-all hover:bg-primary/90"
-    >
-      <span className="relative z-10 flex items-center font-bold tracking-wide">
-        Start Mock Exam 
-        <ChevronRight className="ml-1 h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
-      </span>
-      {/* Button Shine Effect */}
-      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-1000 group-hover/btn:translate-x-full" />
-    </Button>
+    {/* Last Score Summary (Only visible if attempted) */}
+    {isAttempted && (
+      <div className="mb-6 rounded-xl bg-muted/50 p-4 border border-border/50">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Previous Score
+          </span>
+          <span className="text-sm font-bold text-foreground">
+            {scorePct}%
+          </span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${scorePct}%` }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className={`h-full ${scorePct >= 70 ? 'bg-emerald-500' : scorePct >= 40 ? 'bg-amber-500' : 'bg-destructive'}`}
+          />
+        </div>
+        <div className="mt-2 flex justify-between items-center text-xs text-muted-foreground">
+          <span>{lastAttempt.score} of {lastAttempt.total_questions} correct</span>
+          <span>{new Date(lastAttempt.completed_at).toLocaleDateString()}</span>
+        </div>
+      </div>
+    )}
   </div>
+
+  {/* Action Area */}
+  <Button 
+    onClick={() => handleStartTest(test.id)}
+    variant={isAttempted ? "outline" : "default"}
+    className="w-full group/btn h-12 rounded-xl font-semibold "
+  >
+    {isAttempted ? "Retake Exam" : "Start Exam"}
+    <ChevronRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
+  </Button>
 </motion.div>
-                ))}
+                  );
+                })}
               </motion.div>
             )}
           </AnimatePresence>

@@ -69,7 +69,18 @@ export default function CommunitySubmissionsAdmin() {
 
       if (updateError) throw updateError;
 
-      toast({ title: "Submission approved!", description: "Material added to study library." });
+      // 3. Send approval email
+      await fetch('/api/emails/submission', {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          userId: sub.user_id, 
+          type: "approved", 
+          title: sub.title 
+        }),
+      });
+
+      toast({ title: "Submission approved!", description: "Material added to study library and user notified." });
       fetchData();
     } catch (error: any) {
       toast({ title: "Error approving submission", description: error.message, variant: "destructive" });
@@ -89,7 +100,19 @@ export default function CommunitySubmissionsAdmin() {
 
       if (error) throw error;
 
-      toast({ title: "Submission rejected", description: "User will see your feedback." });
+      // 2. Send rejection email
+      await fetch('/api/emails/submission', {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          userId: selectedSub.user_id, 
+          type: "rejected", 
+          title: selectedSub.title,
+          feedback: feedback
+        }),
+      });
+
+      toast({ title: "Submission rejected", description: "User will see your feedback and will be notified via email." });
       setShowReject(false);
       setFeedback("");
       fetchData();

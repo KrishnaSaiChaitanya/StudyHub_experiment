@@ -86,6 +86,17 @@ export default function CommunityUploadPage() {
 
       if (error) throw error;
 
+      // 3. Send confirmation email
+      await fetch('/api/emails/submission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: userData.user.id, 
+          type: "received", 
+          title: title 
+        }),
+      });
+
       setSubmitted(true);
       toast({ title: "Submission successful!", description: "Your material has been sent for admin approval." });
     } catch (error: any) {

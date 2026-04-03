@@ -172,6 +172,7 @@ export default function PracticePapersDashboard() {
                   <SelectItem value="rtp">RTP</SelectItem>
                   <SelectItem value="pyq">PYQ</SelectItem>
                   <SelectItem value="mtp">MTP</SelectItem>
+                  <SelectItem value="online">Online</SelectItem>
                 </SelectContent>
               </Select>
             </div>

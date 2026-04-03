@@ -29,7 +29,7 @@ type DbPaper = {
 interface PaperBrowserProps {
   title: string;
   subtitle: string;
-  paperType: "mtp" | "rtp" | "pyq";
+  paperType: "mtp" | "rtp" | "pyq" | "online";
 }
 
 // Utility to format snake_case enums into Title Case

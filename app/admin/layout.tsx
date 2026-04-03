@@ -20,6 +20,7 @@ const navItems = [
   { href: "/admin/community-submissions", exact: false, icon: Users, label: "Community Submissions" },
   { href: "/admin/faculty", exact: false, icon: Users, label: "Faculty" },
   { href: "/admin/rooms", exact: false, icon: Video, label: "Study Rooms" },
+  { href: "/admin/site-content", exact: false, icon: FileText, label: "Site Content" },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

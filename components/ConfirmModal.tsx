@@ -19,6 +19,7 @@ interface ConfirmModalProps {
   description?: string;
   confirmText?: string;
   cancelText?: string;
+  variant?: "default" | "destructive";
 }
 
 export function ConfirmModal({
@@ -29,6 +30,7 @@ export function ConfirmModal({
   description = "This action cannot be undone.",
   confirmText = "Confirm",
   cancelText = "Cancel",
+  variant = "default",
 }: ConfirmModalProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
@@ -45,7 +47,9 @@ export function ConfirmModal({
               onConfirm();
               onClose();
             }} 
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className={variant === "destructive" 
+              ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" 
+              : "bg-primary text-primary-foreground hover:bg-primary/90"}
           >
             {confirmText}
           </AlertDialogAction>

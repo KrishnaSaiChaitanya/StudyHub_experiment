@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft, Loader2, Bookmark, BookmarkCheck, Maximize2, Minimize2 } from "lucide-react";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -50,6 +50,8 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
   const [bookmarkedQs, setBookmarkedQs] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [qToRemove, setQToRemove] = useState<string | null>(null);
 
   const supabase = createClient();
@@ -186,6 +188,26 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
     }
   };
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
   const handleSubmit = async (isTimeout = false) => {
     if (submitting) return;
     setSubmitting(true);
@@ -198,6 +220,10 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
       const currentScore = calculateScore();
       setScore(currentScore);
 
+      // Calculate time taken
+      const totalTimeSeconds = (test?.duration || questions.length * 1.5) * 60;
+      const timeUsed = totalTimeSeconds - timeLeft;
+
       // Create test_attempts
       const { data: attempt, error: attemptErr } = await supabase
         .from('test_attempts')
@@ -205,7 +231,8 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
           user_id: userId,
           test_id: testId,
           score: currentScore,
-          total_questions: questions.length
+          total_questions: questions.length,
+          time_taken: timeUsed
         })
         .select()
         .single();
@@ -283,7 +310,7 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
             </div>
             <div className="rounded-lg bg-secondary p-4">
               <p className="text-2xl font-bold text-card-foreground">
-                {test ? formatTime((test.duration || questions.length * 1.5) * 60 - timeLeft) : "--:--"}
+                {formatTime((test?.duration || questions.length * 1.5) * 60 - timeLeft)}
               </p>
               <p className="text-xs text-muted-foreground">Time Taken</p>
             </div>
@@ -323,12 +350,17 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
     <div className="container max-w-3xl py-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={onExit} className="gap-1 text-xs text-muted-foreground">
+        <Button variant="ghost" size="sm" onClick={() => setIsExitModalOpen(true)} className="gap-1 text-xs text-muted-foreground">
           <ArrowLeft className="h-3.5 w-3.5" /> Exit
         </Button>
-        <div className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${timeLeft < 300 ? "border-destructive/50 text-destructive" : "border-border text-card-foreground"}`}>
-          <Clock className="h-4 w-4" />
-          {formatTime(timeLeft)}
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={toggleFullscreen}>
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+          <div className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${timeLeft < 300 ? "border-destructive/50 text-destructive" : "border-border text-card-foreground"}`}>
+            <Clock className="h-4 w-4" />
+            {formatTime(timeLeft)}
+          </div>
         </div>
       </div>
 
@@ -422,6 +454,15 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
         title="Remove Bookmark?"
         description="Are you sure you want to remove this question from your bookmarks?"
         confirmText="Remove"
+      />
+      <ConfirmModal
+        isOpen={isExitModalOpen}
+        onClose={() => setIsExitModalOpen(false)}
+        onConfirm={onExit}
+        title="Exit Test?"
+        description="Are you sure you want to exit? Your progress for this attempt will not be saved."
+        confirmText="Exit Anyway"
+        variant="destructive"
       />
     </div>
   );

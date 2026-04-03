@@ -37,19 +37,41 @@ export const updateSession = async (request: NextRequest) => {
 
     // This will refresh session if expired - required for Server Components
     // https://supabase.com/docs/guides/auth/server-side/nextjs
-    const user = await supabase.auth.getUser();
-    // protected routes
-const protectedPaths = ["/protected", "/study", "/practice", "/faculty", "/community", "/dashboard", "/admin"]
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-if (protectedPaths.some(path => request.nextUrl.pathname.startsWith(path)) && user.error) {
-  return NextResponse.redirect(new URL("/sign-in", request.url))
-}
+    // Admin email list from environment variable
+    const adminEmails = (process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map(email => email.trim().toLowerCase())
+      .filter(email => email.length > 0);
 
-    if (request.nextUrl.pathname === "/" && !user.error) {
+    const isUserAdmin = user?.email && adminEmails.includes(user.email.toLowerCase());
+    console.log("isUserAdmin", isUserAdmin, user?.email);
+
+    // Protected routes
+    const protectedPaths = ["/protected", "/study", "/practice", "/faculty", "/community", "/dashboard", "/admin"]
+    const isProtectedPath = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path));
+
+    // 1. If hitting a protected path and NOT logged in, redirect to sign-in
+    if (isProtectedPath && error) {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
+
+    // 2. If hitting /admin path and NOT an admin, redirect to dashboard
+    if (request.nextUrl.pathname.startsWith("/admin") && !isUserAdmin) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    // 3. If on homepage (/) and logged in, redirect based on role
+    if (request.nextUrl.pathname === "/" && !error && user) {
+      if (isUserAdmin) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
     return response;
+
   } catch (e) {
     // If you are here, a Supabase client could not be created!
     // This is likely because you have not set up environment variables.

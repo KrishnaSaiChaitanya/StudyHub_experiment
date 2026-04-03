@@ -43,6 +43,7 @@ export default function TestsDashboard() {
   const [optionC, setOptionC] = useState("");
   const [optionD, setOptionD] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("");
+  const [questionNotes, setQuestionNotes] = useState("");
 
   const allSubjects = [
     ...SUBJECT_MAPPING.foundation,
@@ -59,7 +60,12 @@ export default function TestsDashboard() {
 
   const fetchQuestions = async (testId: string) => {
     setLoadingQuestions(true);
-    const { data } = await supabase.from('questions').select('*').eq('test_id', testId).order('created_at', { ascending: true });
+    const { data } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('test_id', testId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: true });
     if (data) setQuestions(data);
     setLoadingQuestions(false);
   };
@@ -122,6 +128,7 @@ export default function TestsDashboard() {
     setOptionC(question.option_c);
     setOptionD(question.option_d);
     setCorrectAnswer(question.correct_answer);
+    setQuestionNotes(question.notes || "");
     setEditingQuestionId(question.id);
     setShowAddQuestion(true);
   };
@@ -138,12 +145,24 @@ export default function TestsDashboard() {
       option_c: optionC,
       option_d: optionD,
       correct_answer: correctAnswer,
+      notes: questionNotes,
+      is_active: true,
     };
 
     let error;
     if (editingQuestionId) {
-      const { error: updateError } = await supabase.from('questions').update(payload).eq('id', editingQuestionId);
-      error = updateError;
+      // Versioning: Mark old one as inactive and insert new one
+      const { error: deactivateError } = await supabase
+        .from('questions')
+        .update({ is_active: false })
+        .eq('id', editingQuestionId);
+      
+      if (deactivateError) {
+        error = deactivateError;
+      } else {
+        const { error: insertError } = await supabase.from('questions').insert(payload);
+        error = insertError;
+      }
     } else {
       const { error: insertError } = await supabase.from('questions').insert(payload);
       error = insertError;
@@ -153,7 +172,7 @@ export default function TestsDashboard() {
       toast({ title: `Error ${editingQuestionId ? 'updating' : 'adding'} question`, description: error.message, variant: "destructive" });
     } else {
       toast({ title: `Question ${editingQuestionId ? 'updated' : 'added'}!` });
-      setQuestionText(""); setOptionA(""); setOptionB(""); setOptionC(""); setOptionD(""); setCorrectAnswer("");
+      setQuestionText(""); setOptionA(""); setOptionB(""); setOptionC(""); setOptionD(""); setCorrectAnswer(""); setQuestionNotes("");
       setEditingQuestionId(null);
       setShowAddQuestion(false);
       fetchQuestions(selectedTest.id);
@@ -164,7 +183,8 @@ export default function TestsDashboard() {
 
   const handleDeleteQuestion = async (id: string) => {
     if (!confirm("Are you sure?")) return;
-    const { error } = await supabase.from('questions').delete().eq('id', id);
+    // Soft delete / mark inactive for versioning
+    const { error } = await supabase.from('questions').update({ is_active: false }).eq('id', id);
     if (!error) {
         fetchQuestions(selectedTest.id);
         fetchTests();
@@ -215,17 +235,24 @@ export default function TestsDashboard() {
                     <Input value={optionD} onChange={e => setOptionD(e.target.value)} placeholder="Optional" />
                   </div>
                 </div>
-                <div className="space-y-2 w-full md:w-1/2">
-                  <label className="text-sm font-medium">Correct Answer</label>
-                  <Select required value={correctAnswer} onValueChange={setCorrectAnswer}>
-                    <SelectTrigger><SelectValue placeholder="Select correct option" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A">Option A {optionA && `(${optionA.slice(0, 20)}${optionA.length > 20 ? '...' : ''})`}</SelectItem>
-                      {optionB && <SelectItem value="B">Option B ({optionB.slice(0, 20)}{optionB.length > 20 ? '...' : ''})</SelectItem>}
-                      {optionC && <SelectItem value="C">Option C ({optionC.slice(0, 20)}{optionC.length > 20 ? '...' : ''})</SelectItem>}
-                      {optionD && <SelectItem value="D">Option D ({optionD.slice(0, 20)}{optionD.length > 20 ? '...' : ''})</SelectItem>}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Correct Answer</label>
+                    <Select required value={correctAnswer} onValueChange={setCorrectAnswer}>
+                      <SelectTrigger><SelectValue placeholder="Select correct option" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A">Option A {optionA && `(${optionA.slice(0, 20)}${optionA.length > 20 ? '...' : ''})`}</SelectItem>
+                        {optionB && <SelectItem value="B">Option B ({optionB.slice(0, 20)}{optionB.length > 20 ? '...' : ''})</SelectItem>}
+                        {optionC && <SelectItem value="C">Option C ({optionC.slice(0, 20)}{optionC.length > 20 ? '...' : ''})</SelectItem>}
+                        {optionD && <SelectItem value="D">Option D ({optionD.slice(0, 20)}{optionD.length > 20 ? '...' : ''})</SelectItem>}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Notes / Explanations (Viewable by student in performance summary)</label>
+                  <Textarea value={questionNotes} onChange={e => setQuestionNotes(e.target.value)} placeholder="Explain the correct answer or add study notes..." />
                 </div>
 
                 <div className="pt-2">

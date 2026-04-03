@@ -23,7 +23,7 @@ const PYQ = () => (
     <PaperBrowser 
           title="Mock Test Papers" 
           subtitle="Browse, bookmark, and download ICAI mock test papers." 
-          paperType="mtp" 
+          paperType="online" 
         />
     <Footer />
   </div>

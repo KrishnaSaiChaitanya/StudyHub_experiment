@@ -176,6 +176,8 @@ CREATE TABLE public.questions (
   option_c TEXT NOT NULL,
   option_d TEXT NOT NULL,
   correct_answer mcq_option NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -185,17 +187,23 @@ CREATE TRIGGER update_questions_modtime BEFORE UPDATE ON questions FOR EACH ROW 
 CREATE OR REPLACE FUNCTION update_test_question_count()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF TG_OP = 'INSERT' THEN
+  IF TG_OP = 'INSERT' AND NEW.is_active = TRUE THEN
     UPDATE tests SET questions_count = questions_count + 1 WHERE id = NEW.test_id;
-  ELSIF TG_OP = 'DELETE' THEN
+  ELSIF TG_OP = 'DELETE' AND OLD.is_active = TRUE THEN
     UPDATE tests SET questions_count = questions_count - 1 WHERE id = OLD.test_id;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF OLD.is_active = TRUE AND NEW.is_active = FALSE THEN
+        UPDATE tests SET questions_count = questions_count - 1 WHERE id = NEW.test_id;
+    ELSIF OLD.is_active = FALSE AND NEW.is_active = TRUE THEN
+        UPDATE tests SET questions_count = questions_count + 1 WHERE id = NEW.test_id;
+    END IF;
   END IF;
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_test_count
-  AFTER INSERT OR DELETE ON questions
+  AFTER INSERT OR DELETE OR UPDATE ON questions
   FOR EACH ROW EXECUTE FUNCTION update_test_question_count();
 
 CREATE TABLE public.test_attempts (
@@ -204,6 +212,7 @@ CREATE TABLE public.test_attempts (
   test_id UUID REFERENCES public.tests(id) ON DELETE CASCADE,
   score INT NOT NULL,
   total_questions INT NOT NULL,
+  time_taken INT DEFAULT 0, -- Time taken in seconds
   completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
