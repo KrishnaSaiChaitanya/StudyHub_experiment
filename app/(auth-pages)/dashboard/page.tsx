@@ -355,36 +355,73 @@ const Home = () => {
                       </DialogDescription>
                     </DialogHeader>
 
-                    <div className="mt-6 space-y-2">
-                      <p className="text-sm text-muted-foreground">Select up to 4 quick access cards.</p>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        {quickAccessOptions.map((option) => {
-                          const isSelected = selectedQuickAccess.includes(option.path);
-                          const isDisabled = !isSelected && selectedQuickAccess.length >= 4;
-                          return (
-                            <button
-                              key={option.path}
-                              type="button"
-                              onClick={() => handleToggleQuickAccess(option.path)}
-                              className={
-                                `flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all ${
-                                  isSelected ? 'border-accent bg-accent/10 shadow-sm' : 'border-border bg-background hover:border-accent/70'
-                                } ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`
-                              }
-                              disabled={isDisabled}
-                            >
-                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-accent">
-                                <option.icon className="h-5 w-5" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-foreground">{option.title}</p>
-                                <p className="text-xs text-muted-foreground truncate">{option.path}</p>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                  <div className="mt-6 space-y-3">
+  <div className="flex items-center justify-between">
+    <p className="text-sm font-medium text-muted-foreground">Quick Access</p>
+    <span className="text-xs font-medium px-2 py-1 bg-secondary rounded-full">
+      {selectedQuickAccess.length}/4 selected
+    </span>
+  </div>
+
+  {/* 1. Mobile: Single column with horizontal scroll or vertical list 
+      2. sm: Grid with 2 columns
+      3. Added 'max-h' and custom scrollbar for better mobile containment
+  */}
+  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 max-h-[60vh] overflow-y-auto pr-1 pb-2 scrollbar-thin">
+    {quickAccessOptions.map((option) => {
+      const isSelected = selectedQuickAccess.includes(option.path);
+      const isDisabled = !isSelected && selectedQuickAccess.length >= 4;
+      
+      return (
+        <button
+          key={option.path}
+          type="button"
+          onClick={() => handleToggleQuickAccess(option.path)}
+          // 4. Enhanced active state for touch (active:scale-[0.98])
+          className={`
+            flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-all 
+            active:scale-[0.98] touch-manipulation
+            ${isSelected 
+              ? 'border-accent bg-accent/10 shadow-sm ring-1 ring-accent/30' 
+              : 'border-border bg-background'
+            } 
+            ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-accent/50'}
+          `}
+          disabled={isDisabled}
+        >
+          {/* 5. Icon Container: Slightly larger on mobile for better visibility */}
+          <div className={`
+            flex h-12 w-12 shrink-0 items-center justify-center rounded-lg transition-colors
+            ${isSelected ? 'bg-accent text-white' : 'bg-secondary text-accent'}
+          `}>
+            <option.icon className="h-6 w-6" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-semibold truncate ${isSelected ? 'text-accent' : 'text-foreground'}`}>
+              {option.title}
+            </p>
+            <p className="text-[11px] text-muted-foreground truncate opacity-80">
+              {option.path}
+            </p>
+          </div>
+
+          {/* 6. Selection Indicator: Visual feedback is crucial on small screens */}
+          <div className={`
+            h-5 w-5 rounded-full border flex items-center justify-center transition-all
+            ${isSelected ? 'bg-accent border-accent' : 'border-border'}
+          `}>
+            {isSelected && (
+              <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </div>
+        </button>
+      );
+    })}
+  </div>
+</div>
 
                     <DialogFooter className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
                       <DialogClose asChild>
@@ -447,7 +484,7 @@ const Home = () => {
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{event.title}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground truncate">
+                        <p className="mt-0.5 text-xs text-muted-foreground truncate sm:w-full w-60">
                           {event.event_time} · {formatSubjectName(event.subject)}
                         </p>
                       </div>
