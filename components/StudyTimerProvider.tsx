@@ -44,14 +44,21 @@ export const StudyTimerProvider = ({ children }: { children: React.ReactNode }) 
     const savedSubject = localStorage.getItem("studyTimer_activeSubject");
     const savedTime = localStorage.getItem("studyTimer_lastSavedTime");
 
-    if (savedSeconds) setSeconds(parseInt(savedSeconds, 10));
+    if (savedSeconds) {
+      let secs = parseInt(savedSeconds, 10);
+      
+      // Calculate elapsed time if it was running before reload for accuracy
+      if (savedRunning === "true" && savedTime) {
+         const elapsed = Math.floor((Date.now() - parseInt(savedTime, 10)) / 1000);
+         secs += elapsed;
+      }
+      setSeconds(secs);
+    }
+    
     if (savedSubject) setActiveSubjectState(savedSubject as SubjectCategory);
     
-    if (savedRunning === "true" && savedTime) {
-      const elapsed = Math.floor((Date.now() - parseInt(savedTime, 10)) / 1000);
-      setSeconds(prev => prev + elapsed);
-      setRunning(true);
-    }
+    // Always start in paused state on page reload as requested
+    setRunning(false);
   }, []);
 
   // Save to localStorage whenever state changes
