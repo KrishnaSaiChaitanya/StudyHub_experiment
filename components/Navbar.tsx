@@ -192,7 +192,7 @@ const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 border-b border-border backdrop-blur-xl bg-white">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5 h-16 w-16">
+        <Link href="/" className="flex items-center gap-2.5 h-14 w-14">
           <LogoElement />
         </Link>
 

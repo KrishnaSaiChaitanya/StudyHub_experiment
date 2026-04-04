@@ -27,17 +27,20 @@ export default function CommunitySubmissionsAdmin() {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('community_submissions')
-      .select('*, profile:user_id(id, full_name), faculty:faculty_id(name)')
-      .order('created_at', { ascending: false });
+    try {
+      const response = await fetch('/api/admin/community-submissions');
+      const data = await response.json();
 
-    if (error) {
-      toast({ title: "Error fetching submissions", description: error.message, variant: "destructive" });
-    } else {
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch submissions");
+      }
+      
       setSubmissions(data || []);
+    } catch (error: any) {
+      toast({ title: "Error fetching submissions", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -172,7 +175,7 @@ export default function CommunitySubmissionsAdmin() {
                        </Badge>
                     </TableCell>
                     <TableCell className="text-xs font-semibold text-foreground italic">
-                      {sub.profile?.full_name || 'Anonymous User'}
+                      {sub.uploader_name || 'Anonymous User'}
                     </TableCell>
                     <TableCell className="text-xs">{new Date(sub.created_at).toLocaleDateString()}</TableCell>
                     <TableCell className="text-center">

@@ -52,18 +52,42 @@ export const updateSession = async (request: NextRequest) => {
     const protectedPaths = ["/protected", "/study", "/practice", "/faculty", "/community", "/dashboard", "/admin"]
     const isProtectedPath = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path));
 
+    // Premium paths that require a paid subscription
+    const premiumPaths = [
+      "/practice/mock-exams",
+      "/practice/performance",
+      "/bookmarks",
+      "/community/rooms"
+    ];
+    const isPremiumPath = premiumPaths.some(path => request.nextUrl.pathname.startsWith(path));
+
     // 1. If hitting a protected path and NOT logged in, redirect to sign-in
-    if (isProtectedPath && error) {
+    if (isProtectedPath && !user) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
-    // 2. If hitting /admin path and NOT an admin, redirect to dashboard
+    // 2. Premium content check: Only run this query for premium paths to avoid delaying other pages
+    if (isPremiumPath && user && !isUserAdmin) {
+      const { data: subscriptionData } = await supabase
+        .from("subscriptions")
+        .select("status")
+        .eq("id", user.id)
+        .single();
+
+      const isSubscribed = subscriptionData?.status === "active";
+      
+      if (!isSubscribed) {
+        return NextResponse.redirect(new URL("/pricing", request.url));
+      }
+    }
+
+    // 3. If hitting /admin path and NOT an admin, redirect to dashboard
     if (request.nextUrl.pathname.startsWith("/admin") && !isUserAdmin) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    // 3. If on homepage (/) and logged in, redirect based on role
-    if (request.nextUrl.pathname === "/" && !error && user) {
+    // 4. If on homepage (/) and logged in, redirect based on role
+    if (request.nextUrl.pathname === "/" && user) {
       if (isUserAdmin) {
         return NextResponse.redirect(new URL("/admin", request.url));
       }
