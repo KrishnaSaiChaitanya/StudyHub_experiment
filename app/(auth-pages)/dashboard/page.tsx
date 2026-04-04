@@ -166,7 +166,7 @@ const Home = () => {
       ] = await Promise.all([
         supabase.from('profiles').select('current_streak, quick_access_preference').eq('id', user.id).single(),
         supabase.from('study_sessions').select('duration_seconds').eq('user_id', user.id).eq('session_date', todayStr),
-        supabase.from('todos').select('status').eq('user_id', user.id).in('category', subjects),
+        supabase.from('todos').select('status').eq('user_id', user.id).in('category', [...subjects, "general"]),
         supabase.from('calendar_events').select('*').in('subject', ['general', ...subjects]),
         supabase.from('practice_papers')
           .select('*')

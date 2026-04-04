@@ -72,6 +72,7 @@ const MockExam = ({ testId, onExit }: MockExamProps) => {
           .from('questions')
           .select('*')
           .eq('test_id', testId)
+          .eq('is_active', true)
           .order('created_at', { ascending: true });
         if (qErr) throw qErr;
 

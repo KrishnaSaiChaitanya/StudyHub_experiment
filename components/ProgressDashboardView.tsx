@@ -149,7 +149,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
   const fetchTodos = async (uid: string) => {
     let todosQuery = supabase.from('todos').select('*').eq('user_id', uid).order('created_at', { ascending: false });
     if (subjects.length > 0) {
-      todosQuery = todosQuery.in('category', subjects);
+      todosQuery = todosQuery.in('category', [...subjects, "general"]);
     }
     const { data } = await todosQuery;
     if (data) setTodos(data);
