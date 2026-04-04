@@ -85,7 +85,7 @@ const quickAccessOptions: QuickAccessOption[] = [
   { icon: BarChart3, title: "Progress Tracking", path: "/study/progress" },
   { icon: CalendarDays, title: "Exam Calendar", path: "/study/events" },
   { icon: MessageCircle, title: "Community Library", path: "/community/upload" },
-  { icon: BookOpen, title: "Study Planner", path: "/study/planner" },
+  { icon: BookOpen, title: "Study Resources", path: "/study/planner" },
   { icon: Lightbulb, title: "Notes & Bookmarks", path: "/study/bookmarks" },
 ];
 

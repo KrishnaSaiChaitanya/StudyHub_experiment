@@ -252,12 +252,12 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* <div className="flex items-center gap-2">
-          <StudyTimerPill />
+        <div className="flex items-center gap-2">
+          {/* <StudyTimerPill /> */}
           <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
-        </div> */}
+        </div>
       </div>
 
       {mobileOpen && (

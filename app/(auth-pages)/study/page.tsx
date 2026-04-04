@@ -6,7 +6,7 @@ import { BookOpen, Timer, CalendarDays, Target, BarChart3, ClipboardList } from 
 import Link from "next/link";
 
 const tools = [
-  { icon: BookOpen, title: "Study Planner", description: "Create personalized study plans aligned with your exam schedule.", badge: "Popular", path: "/study/planner" },
+  { icon: BookOpen, title: "Study Resources", description: "Create personalized study plans aligned with your exam schedule.", badge: "Popular", path: "/study/planner" },
   { icon: Timer, title: "Focus Timer", description: "Pomodoro-based timer with session tracking and insights.", path: "/study/progress" },
   { icon: Target, title: "Task Manager", description: "Break down syllabus into actionable tasks and track completion.", path: "/study/progress" },
   { icon: BarChart3, title: "Progress Dashboard", description: "Visualize preparation across subjects with analytics.", path: "/study/progress" },
