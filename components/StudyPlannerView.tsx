@@ -37,6 +37,7 @@ const StudyPlannerView = ({ onBack }: Props) => {
   const [planners, setPlanners] = useState<PlannerType[]>([]);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
 
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -133,50 +134,42 @@ console.log(plannersData, "data");
     setPlannerToUnbookmark(null);
   };
 
-  const handleDownload = async (planner: PlannerType) => {
-    try {
-      // 1. Try to fetch and download the file (to force download instead of just opening)
-      const response = await fetch(planner.pdf_url);
-      if (!response.ok) throw new Error('Network response was not ok');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${planner.title.replace(/[/\\?%*:|"<>]/g, '-')}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+ const handleDownload = async (planner: PlannerType) => {
+  // 1. Convert standard Drive link to a direct download link
+  // Standard: https://drive.google.com/file/d/FILE_ID/view
+  // Download: https://drive.google.com/uc?export=download&id=FILE_ID
+  const fileId = planner.pdf_url.match(/[-\w]{25,}/); 
+  const downloadUrl = fileId 
+    ? `https://drive.google.com/uc?export=download&id=${fileId[0]}`
+    : planner.pdf_url;
 
-      // 2. Increment download count in Supabase
-      const { error } = await supabase
-        .from('study_planners')
-        .update({ downloads: planner.downloads + 1 })
-        .eq('id', planner.id);
+  try {
+    setDownloadingIds(prev => [...prev, planner.id]);
+    // 2. Open the download link in a hidden iframe or new tab
+    // This triggers the browser's native download behavior
+    window.location.href = downloadUrl;
 
-      if (!error) {
-        setPlanners(prev => prev.map(p => 
-          p.id === planner.id ? { ...p, downloads: p.downloads + 1 } : p
-        ));
-      }
-    } catch (error) {
-      console.error("Download failed, opening in new tab instead:", error);
-      // Fallback: just open in new tab
-      window.open(planner.pdf_url, '_blank');
-      
-      // Still try to increment if they opened it
-      await supabase
-        .from('study_planners')
-        .update({ downloads: planner.downloads + 1 })
-        .eq('id', planner.id);
-        
+    // 3. Increment download count in Supabase
+    // Note: Use .rpc() or increment logic if multiple users might download at once
+    const { error } = await supabase
+      .from('study_planners')
+      .update({ downloads: planner.downloads + 1 })
+      .eq('id', planner.id);
+
+    if (!error) {
       setPlanners(prev => prev.map(p => 
         p.id === planner.id ? { ...p, downloads: p.downloads + 1 } : p
       ));
     }
-  };
-
+  } catch (error) {
+    console.error("Tracking failed:", error);
+  } finally {
+    // Add a small delay so it doesn't flicker too fast if it's instant
+    setTimeout(() => {
+      setDownloadingIds(prev => prev.filter(id => id !== planner.id));
+    }, 1000);
+  }
+};
   const filtered = planners.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.faculty_name.toLowerCase().includes(search.toLowerCase());
     const matchesSubject = selectedSubject === "All" || p.category === selectedSubject;
@@ -210,7 +203,7 @@ console.log(plannersData, "data");
         <ArrowLeft className="h-3.5 w-3.5" /> Back to Study Tools
       </button>
       <h1 className="text-3xl font-bold text-primary-foreground">
-        Study <span className="text-gradient-blue">Planners</span>
+        Study <span className="text-gradient-blue">Resources</span>
       </h1>
       <p className="mt-2 text-sm text-primary-foreground/50">
         Browse and download study planners shared by top faculty.
@@ -312,7 +305,7 @@ console.log(plannersData, "data");
             {/* Planner cards */}
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((planner, i) => (
-                <Link href={planner.pdf_url} key={planner.id} target="_blank">
+              
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -341,17 +334,17 @@ console.log(plannersData, "data");
 
                   {/* Meta */}
                   <div className="mt-3 space-y-1.5 flex-1">
-                    {!planner.is_community && (
+                    {/* {!planner.is_community && ( */}
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <User className="h-3 w-3" /> {planner.faculty_name}
                       </div>
-                    )}
+                    {/* )} */}
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3" /> {new Date(planner.planner_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{planner.pages} pages</span>
-                      <span>•</span>
+                     {planner.pages && <><span className="text-xs">{planner.pages} pages</span>
+                      <span>•</span></>}
                       <span>{planner.downloads} downloads</span>
                     </div>
                   </div>
@@ -362,8 +355,19 @@ console.log(plannersData, "data");
                       size="sm" 
                       className="flex-1 gap-1.5 text-xs" 
                       onClick={() => handleDownload(planner)}
+                      disabled={downloadingIds.includes(planner.id)}
                     >
-                      <Download className="h-3.5 w-3.5" /> Download
+                      {downloadingIds.includes(planner.id) ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Downloading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-3.5 w-3.5" />
+                          <span>Download</span>
+                        </>
+                      )}
                     </Button>
                     <button
                       onClick={() => window.open(planner.pdf_url, '_blank')}
@@ -381,7 +385,7 @@ console.log(plannersData, "data");
                     </button>
                   </div>
                 </motion.div>
-                </Link>
+                
               ))}
             </div>
 

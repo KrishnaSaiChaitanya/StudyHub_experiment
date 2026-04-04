@@ -13,7 +13,7 @@ const sections = [
     description: "Contribute to the collective knowledge. Upload study planners, notes, or tips for others.", 
     actions: [
       { label: "Upload Material", href: "/community/upload" },
-      { label: "View Library", href: "/study/planner?filter=community" }
+      { label: "View Library", href: "/study/planner" }
     ],
     disabled: false 
   },

@@ -48,7 +48,7 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [viewingPaperId, setViewingPaperId] = useState<string | null>(null);
-  const [downloadingPaperId, setDownloadingPaperId] = useState<string | null>(null);
+  const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
 
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
@@ -180,37 +180,74 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
     setViewingPaperId(null);
   };
 
-  const downloadPaper = async (paper: DbPaper) => {
-    if (!paper.pdf_url) {
-      toast({ title: "Missing PDF", description: "This paper has no PDF available.", variant: "destructive" });
-      return;
-    }
+const downloadPaper = async (paper: DbPaper) => {
+  if (!paper.pdf_url) {
+    toast({ title: "Missing PDF", description: "This paper has no PDF available.", variant: "destructive" });
+    return;
+  }
 
-    setDownloadingPaperId(paper.id);
+  setDownloadingIds(prev => [...prev, paper.id]);
 
-    try {
-      const response = await fetch(paper.pdf_url);
+  try {
+    const url = paper.pdf_url;
+    // Regex to detect Google Drive patterns
+    const isGoogleDrive = /drive\.google\.com/.test(url);
+
+    if (isGoogleDrive) {
+      /**
+       * CASE 1: Google Drive
+       * Fetching Drive links via JS usually fails due to CORS.
+       * We convert the link to a direct download and let the browser handle it.
+       */
+      const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)|id=([a-zA-Z0-9-_]+)/);
+      const fileId = fileIdMatch ? (fileIdMatch[1] || fileIdMatch[2]) : null;
+
+      if (fileId) {
+        const downloadLink = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        window.location.href = downloadLink;
+      } else {
+        // Fallback: Just open the link if we can't parse the ID
+        window.open(url, '_blank');
+      }
+    } else {
+      /**
+       * CASE 2: Standard Direct Link
+       * We use your original Blob method for a seamless background download.
+       */
+      const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to download file");
 
       const blob = await response.blob();
       const href = URL.createObjectURL(blob);
+      
       const anchor = document.createElement("a");
       anchor.href = href;
       const sanitizedTitle = paper.title.replace(/[^a-z0-9_\-\.]/gi, "_");
       anchor.download = `${sanitizedTitle}.pdf`;
+      
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(href);
-
-      // toast({ title: "Download started", description: paper.title });
-    } catch (error) {
-      console.error("Download error:", error);
-      toast({ title: "Download failed", description: "Could not download this paper.", variant: "destructive" });
-    } finally {
-      setDownloadingPaperId(null);
     }
-  };
+
+    // Optional: Success toast
+    // toast({ title: "Download started", description: paper.title });
+
+  } catch (error) {
+    console.error("Download error:", error);
+    // If fetch fails (CORS), try opening in a new tab as a ultimate fallback
+    window.open(paper.pdf_url, '_blank');
+    toast({ 
+      title: "Download redirected", 
+      description: "Opening file in a new tab...", 
+    });
+  } finally {
+    setTimeout(() => {
+      setDownloadingIds(prev => prev.filter(id => id !== paper.id));
+    }, 1000);
+  }
+};
 
   // Dynamic filter lists based on fetched data
   const subjects = useMemo(() => Array.from(new Set(papers.map((p) => p.subject))), [papers]);
@@ -349,7 +386,7 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
                     size="icon"
                     className="h-8 w-8"
                     onClick={() => openPaper(paper)}
-                    disabled={isLoading || viewingPaperId === paper.id || downloadingPaperId === paper.id}
+                    disabled={isLoading || viewingPaperId === paper.id || downloadingIds.includes(paper.id)}
                     title="View"
                   >
                     {viewingPaperId === paper.id ? (
@@ -359,17 +396,22 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
                     )}
                   </Button>
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs px-3 min-w-[100px]"
                     onClick={() => downloadPaper(paper)}
-                    disabled={isLoading || viewingPaperId === paper.id || downloadingPaperId === paper.id}
-                    title="Download"
+                    disabled={isLoading || viewingPaperId === paper.id || downloadingIds.includes(paper.id)}
                   >
-                    {downloadingPaperId === paper.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    {downloadingIds.includes(paper.id) ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Downloading...</span>
+                      </>
                     ) : (
-                      <Download className="h-4 w-4" />
+                      <>
+                        <Download className="h-3.5 w-3.5" />
+                        <span>Download</span>
+                      </>
                     )}
                   </Button>
                 </div>

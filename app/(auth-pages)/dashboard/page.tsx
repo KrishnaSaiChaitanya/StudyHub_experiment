@@ -71,13 +71,13 @@ type QuickAccessOption = {
 const defaultQuickLinks: QuickAccessOption[] = [
   { icon: BarChart3, title: "Progress Dashboard", path: "/study/progress" },
   { icon: FileText, title: "Mock Exams", path: "/practice/mock-exams" },
-  { icon: Library, title: "Community Library", path: "/study/planner?filter=community" },
+  { icon: Library, title: "Community Library", path: "/study/planner" },
   { icon: Users, title: "Group Study Rooms", path: "/community/rooms" },
 ];
 
 const quickAccessOptions: QuickAccessOption[] = [
   { icon: FileText, title: "MTP", path: "/practice/mtp" },
-  { icon: ClipboardCheck, title: "Mock Exams", path: "/practice/mock" },
+  { icon: ClipboardCheck, title: "Mock Exams", path: "/practice/mock-exams" },
   { icon: GraduationCap, title: "Faculty Database", path: "/faculty" },
   { icon: Users, title: "Group Study", path: "/community/rooms" },
   { icon: Timer, title: "RTP", path: "/practice/rtp" },

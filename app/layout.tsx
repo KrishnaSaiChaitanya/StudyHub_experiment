@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/sections/footer";
 import { Providers } from "@/components/providers";
 import QueryProvider from "@/components/QueryProvider";
+import { StudyTimerPill } from "@/components/StudyTimerPill";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -54,7 +55,7 @@ export default function RootLayout({
                     {children}
                   </div>
                 </div>
-                 
+                 <StudyTimerPill />
                 
               </Providers>
             </QueryProvider>

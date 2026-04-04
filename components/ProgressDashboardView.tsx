@@ -12,20 +12,13 @@ import { createClient } from "@/utils/supabase/client";
 import { SubjectCategory } from "@/utils/supabase/types";
 import { useToast } from "@/components/ui/use-toast";
 import { useStudent } from "./StudentTypeProvider";
-import { formatSubjectName, getSubjectAbbreviation } from "@/utils/subjects";
+import { useStudyTimer } from "./StudyTimerProvider";
+import { formatSubjectName, getSubjectAbbreviation, SUBJECT_COLORS, getSubjectColor as getGlobalSubjectColor } from "@/utils/subjects";
 import { ProFeatureLock } from "@/components/ProFeatureLock";
 import { useSubscription } from "@/components/SubscriptionProvider";
 
-const SUBJECT_COLORS = [
-  "hsl(197 100% 50%)",
-  "hsl(142 71% 45%)",
-  "hsl(38 92% 50%)",
-  "hsl(280 67% 55%)",
-  "hsl(350 80% 55%)",
-  "hsl(210 60% 50%)",
-  "hsl(160 50% 45%)",
-  "hsl(20 80% 60%)"
-];
+
+
 
 
 interface TodoType {
@@ -96,30 +89,37 @@ const ProgressDashboardView = ({ onBack }: Props) => {
   const { isSubscribed } = useSubscription()
   
   const dynamicSubjects = useMemo(() => {
-    return subjects.map((subj, idx) => ({
+    return subjects.map((subj) => ({
       label: formatSubjectName(subj),
       value: subj,
-      color: SUBJECT_COLORS[idx % SUBJECT_COLORS.length]
+      color: getGlobalSubjectColor(subj)
     }));
   }, [subjects]);
 
   const getSubjectLabel = useCallback((val: string) => dynamicSubjects.find(s => s.value === val)?.label || formatSubjectName(val as SubjectCategory), [dynamicSubjects]);
-  const getSubjectColor = useCallback((val: string) => dynamicSubjects.find(s => s.value === val)?.color || "hsl(0 0% 50%)", [dynamicSubjects]);
+  const getSubjectColor = useCallback((val: string) => dynamicSubjects.find(s => s.value === val)?.color || getGlobalSubjectColor(val as SubjectCategory), [dynamicSubjects]);
+
+  const {
+    seconds,
+    running,
+    activeSubject,
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    setActiveSubject,
+    saveSession,
+    isSaving: isSavingSession
+  } = useStudyTimer();
+
+  // Redirect if no active subject and subjects available
+  useEffect(() => {
+    if (subjects.length > 0 && !activeSubject) {
+      setActiveSubject(subjects[0]);
+    }
+  }, [subjects, activeSubject, setActiveSubject]);
 
   const [userId, setUserId] = useState<string | null>(null);
   
-  // Timer state
-  const [activeSubject, setActiveSubject] = useState<SubjectCategory>(subjects[0]);
-
-  useEffect(() => {
-    if (subjects.length > 0 && !subjects.includes(activeSubject)) {
-      setActiveSubject(subjects[0]);
-    }
-  }, [subjects, activeSubject]);
-  const [seconds, setSeconds] = useState(0);
-  const [running, setRunning] = useState(false);
-  const [isSavingSession, setIsSavingSession] = useState(false);
-
   // Todo state
   const [todos, setTodos] = useState<TodoType[]>([]);
   const [todoFilter, setTodoFilter] = useState<string>("All");
@@ -130,14 +130,6 @@ const ProgressDashboardView = ({ onBack }: Props) => {
   const [sessions, setSessions] = useState<StudySessionType[]>([]);
   const [totalSessionsCount, setTotalSessionsCount] = useState(0);
   const [streak, setStreak] = useState(0);
-
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (running) {
-      interval = setInterval(() => setSeconds((s) => s + 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [running]);
 
   useEffect(() => {
     if (studentLoading) return;
@@ -241,25 +233,10 @@ console.log(todaySessions);
 
   // Timer Actions
   const handleSaveSession = async () => {
-    if (!userId || seconds === 0) return;
-    setIsSavingSession(true);
-    setRunning(false);
-
-    const { data, error } = await supabase.from('study_sessions').insert({
-      user_id: userId,
-      category: activeSubject,
-      duration_seconds: seconds
-    }).select().single();
-
-    if (!error && data) {
-      setSessions([data, ...sessions]);
-      setSeconds(0);
-      setTotalSessionsCount(prev => prev + 1);
-      toast({ title: "Session saved successfully!" });
-    } else {
-      toast({ title: "Failed to save session", variant: "destructive" });
+    const success = await saveSession();
+    if (success) {
+      if (userId) fetchSessions(userId);
     }
-    setIsSavingSession(false);
   };
 
   // Derived data
@@ -378,7 +355,7 @@ console.log(todaySessions);
                   {dynamicSubjects.map((s) => (
                     <button
                       key={s.value}
-                      onClick={() => { setActiveSubject(s.value); if (!running) setSeconds(0); }}
+                      onClick={() => { setActiveSubject(s.value); }}
                       className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                         activeSubject === s.value ? "text-white shadow-sm" : "bg-secondary text-muted-foreground"
                       }`}
@@ -393,7 +370,7 @@ console.log(todaySessions);
                   <svg width="200" height="200" viewBox="0 0 220 220">
                     <circle cx="110" cy="110" r="95" fill="none" className="stroke-secondary" strokeWidth="6" />
                     <motion.circle
-                      cx="110" cy="110" r="95" fill="none" stroke={getSubjectColor(activeSubject)}
+                      cx="110" cy="110" r="95" fill="none" stroke={getSubjectColor(activeSubject || subjects[0])}
                       strokeWidth="6" strokeLinecap="round" strokeDasharray={2 * Math.PI * 95}
                       strokeDashoffset={-(2 * Math.PI * 95 * ((Math.min(seconds, 3600) / 3600)))}
                       style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
@@ -401,7 +378,7 @@ console.log(todaySessions);
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <p className="text-3xl font-mono font-bold">{formatTime(seconds)}</p>
-                    <p className="text-xs text-muted-foreground mt-1 truncate max-w-[120px]">{getSubjectAbbreviation(activeSubject)}</p>
+                    <p className="text-xs text-muted-foreground mt-1 truncate max-w-[120px]">{activeSubject ? getSubjectAbbreviation(activeSubject) : ""}</p>
                   </div>
                 </div>
 
@@ -411,18 +388,15 @@ console.log(todaySessions);
                   size="icon"
                   className="h-10 w-10 rounded-full border-border"
                   title="Reset Counter"
-                  onClick={() => {
-                    setSeconds(0);
-                    setRunning(false);
-                  }}
+                  onClick={resetTimer}
                 >
                   <RotateCcw className="h-4 w-4" />
                 </Button>
                 
                 <Button
                   className="h-14 w-14 rounded-full shadow-md"
-                  style={{ backgroundColor: getSubjectColor(activeSubject) }}
-                  onClick={() => setRunning(!running)}
+                  style={{ backgroundColor: getSubjectColor(activeSubject || subjects[0]) }}
+                  onClick={() => running ? pauseTimer() : startTimer()}
                 >
                   {running ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 text-white ml-0.5" />}
                 </Button>

@@ -56,3 +56,26 @@ export const formatSubjectName = (subject: SubjectCategory): string => {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
+
+export const SUBJECT_COLORS = [
+  "hsl(197 100% 50%)",
+  "hsl(142 71% 45%)",
+  "hsl(38 92% 50%)",
+  "hsl(280 67% 55%)",
+  "hsl(350 80% 55%)",
+  "hsl(210 60% 50%)",
+  "hsl(160 50% 45%)",
+  "hsl(20 80% 60%)"
+];
+
+export const getSubjectColor = (subject: SubjectCategory): string => {
+  if (subject === 'general') return "hsl(210 20% 50%)";
+  
+  // Consistent color selection based on the subject string
+  let hash = 0;
+  for (let i = 0; i < subject.length; i++) {
+    hash = subject.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % SUBJECT_COLORS.length;
+  return SUBJECT_COLORS[index];
+};

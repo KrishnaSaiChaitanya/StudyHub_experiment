@@ -16,6 +16,7 @@ import { LogoElement } from "@/assets/logo";
 import { useSubscription } from "./SubscriptionProvider";
 import { useStudent } from "./StudentTypeProvider";
 
+
 const navItems = [
   { label: "Home", path: "/" },
   { label: "Study", path: "/study" },
@@ -222,6 +223,7 @@ const Navbar = () => {
         </div>
 
         <div className="hidden items-center gap-3 md:flex !font-semibold">
+       
           {user ? (
             <>
               {isPro && (
@@ -250,9 +252,12 @@ const Navbar = () => {
           )}
         </div>
 
-        <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {/* <div className="flex items-center gap-2">
+          <StudyTimerPill />
+          <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div> */}
       </div>
 
       {mobileOpen && (

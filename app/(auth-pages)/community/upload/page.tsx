@@ -204,16 +204,40 @@ export default function CommunityUploadPage() {
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Faculty (Optional)</label>
-                    <Select value={facultyId} onValueChange={setFacultyId}>
-                      <SelectTrigger className="h-12 border-border focus:ring-accent/20 bg-muted/20">
-                        <SelectValue placeholder="No Faculty" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {facultyList.map(f => (
-                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  
+<Select 
+  value={facultyId} 
+  onValueChange={(value) => {
+    // If the value is 'none', clear it.
+    // If you click the same value, this might not trigger depending on the library version.
+    setFacultyId(value === "none" ? "" : value);
+  }}
+>
+  <SelectTrigger className="h-12 border-border focus:ring-accent/20 bg-muted/20">
+    <SelectValue placeholder="No Faculty Selected" />
+  </SelectTrigger>
+  <SelectContent>
+    {/* Explicit Clear Option */}
+    {facultyId && (
+       <Button 
+         variant="ghost" 
+         className="w-full justify-start px-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+         onClick={(e) => {
+           e.stopPropagation();
+           setFacultyId("");
+         }}
+       >
+         Clear Selection
+       </Button>
+    )}
+    
+    {facultyList.map(f => (
+      <SelectItem key={f.id} value={f.id}>
+        {f.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
                   </div>
 
                   <div className="space-y-2">
