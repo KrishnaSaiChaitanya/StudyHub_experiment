@@ -5,8 +5,10 @@ import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { syncUserActivity } from "@/utils/supabase/profile";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { sendEmail, getVerificationEmail, getPasswordResetEmail } from "@/utils/email";
 
-const siteURL = process.env.NEXT_PUBLIC_SITE_URL
+const siteURL = process.env.NEXT_PUBLIC_SITE_URL;
 
 
 export const signUpAction = async (formData: FormData) => {  
@@ -14,9 +16,11 @@ export const signUpAction = async (formData: FormData) => {
   const password = formData.get("password")?.toString();
   const full_name = formData.get("full_name")?.toString();
 
-  const supabase = await createClient();
   const headersList = await headers();
-  const origin = headersList.get("origin") || headersList.get("host") || "";
+  const host = headersList.get("host") || "";
+  const protocol = headersList.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  const origin = `${protocol}://${host}`;
+  const adminClient = createAdminClient();
 
   if (!email || !password) {
     return encodedRedirect(
@@ -26,24 +30,41 @@ export const signUpAction = async (formData: FormData) => {
     );
   }
 
-  const { error } = await supabase.auth.signUp({
+  // 1. Generate the verification link (this also creates the user if they don't exist)
+  const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+    type: 'signup',
     email,
     password,
     options: {
-      emailRedirectTo: origin ? `${origin}/auth/callback` : undefined,
       data: {
         full_name: full_name || "",
-      }
+      },
+      redirectTo: origin ? `${origin}/auth/callback` : `${siteURL}/auth/callback`,
     },
   });
 
-  if (error) {
-    console.error("Sign up error:", error.code, error.message);
+  if (linkError) {
+    console.error("Sign up/Link generation error:", linkError.code, linkError.message);
     return encodedRedirect(
       "/sign-up",
       "error",
-      error.message || "Could not sign up. Please try again."
+      linkError.message || "Could not sign up. Please try again."
     );
+  }
+
+  // 2. Send email using nodemailer
+  if (linkData?.properties?.hashed_token) {
+    const confirmLink = `${origin}/auth/confirm?token_hash=${linkData.properties.hashed_token}&type=signup&next=/dashboard`;
+    
+    const emailResult = await sendEmail({
+      to: email,
+      subject: "Verify your email - StudyHub",
+      html: getVerificationEmail(confirmLink),
+    });
+
+    if (!emailResult.success) {
+      console.error("Nodemailer error:", emailResult.error);
+    }
   }
 
   return encodedRedirect(
@@ -102,9 +123,12 @@ export const signInWithGoogle = async (formData: FormData) => {
 
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
-  const supabase = await createClient();
-  const origin = (await headers()).get("origin");
+  const headersList = await headers();
+  const host = headersList.get("host") || "";
+  const protocol = headersList.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  const origin = `${protocol}://${host}`;
   const callbackUrl = formData.get("callbackUrl")?.toString();
+  const adminClient = createAdminClient();
 
   if (!email) {
     return encodedRedirect(
@@ -113,17 +137,38 @@ export const forgotPasswordAction = async (formData: FormData) => {
       "Email is required");
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?redirect_to=/reset-password`,
+  // 1. Generate the recovery link
+  const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: {
+      redirectTo: origin ? `${origin}/auth/callback?redirect_to=/reset-password` : `${siteURL}/auth/callback?redirect_to=/reset-password`,
+    },
   });
 
-  if (error) {
-    console.error(error.message);
+  if (linkError) {
+    console.error("Recovery link error:", linkError.message);
+    // For security, don't reveal if user doesn't exist, but here we can log it
     return encodedRedirect(
       "/forgot-password",
-      "error",
-      "Could not reset password",
+      "success",
+      "If an account exists, you will receive a password reset email."
     );
+  }
+
+  // 2. Send email using nodemailer
+  if (linkData?.properties?.hashed_token) {
+    const resetLink = `${origin}/auth/confirm?token_hash=${linkData.properties.hashed_token}&type=recovery&next=/reset-password`;
+
+    const emailResult = await sendEmail({
+      to: email,
+      subject: "Reset your password - StudyHub",
+      html: getPasswordResetEmail(resetLink),
+    });
+
+    if (!emailResult.success) {
+      console.error("Nodemailer error:", emailResult.error);
+    }
   }
 
   if (callbackUrl) {

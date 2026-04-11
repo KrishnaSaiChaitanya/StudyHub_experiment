@@ -110,6 +110,46 @@ export const getSubmissionReceivedEmail = (userName: string, title: string) => {
   `);
 };
 
+export const getVerificationEmail = (link: string) => {
+  return getEmailWrapper(`
+    <h2 style="font-size: 22px; font-weight: 700; margin-top: 0;">Verify your email 📧</h2>
+    <p>Welcome to <strong>StudyHub</strong>! We're excited to have you join our community.</p>
+    <p>Please click the button below to verify your email address and activate your account.</p>
+    
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${link}" 
+         style="display: inline-block; background-color: ${BRAND_COLOR}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);">
+         Verify Email Address
+      </a>
+    </div>
+    
+    <p style="font-size: 14px; color: ${TEXT_MUTED};">If the button doesn't work, copy and paste this link into your browser:</p>
+    <p style="font-size: 12px; word-break: break-all; color: ${BRAND_COLOR};">${link}</p>
+    
+    <p style="margin-top: 24px; font-size: 14px; color: ${TEXT_MUTED};">This link will expire in 24 hours. If you didn't create an account, you can safely ignore this email.</p>
+  `);
+};
+
+export const getPasswordResetEmail = (link: string) => {
+  return getEmailWrapper(`
+    <h2 style="font-size: 22px; font-weight: 700; margin-top: 0;">Reset your password 🔒</h2>
+    <p>We received a request to reset the password for your StudyHub account.</p>
+    <p>Click the button below to choose a new password. If you didn't request this, you can safely ignore this email.</p>
+    
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${link}" 
+         style="display: inline-block; background-color: ${BRAND_COLOR}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);">
+         Reset Password
+      </a>
+    </div>
+    
+    <p style="font-size: 14px; color: ${TEXT_MUTED};">If the button doesn't work, copy and paste this link into your browser:</p>
+    <p style="font-size: 12px; word-break: break-all; color: ${BRAND_COLOR};">${link}</p>
+    
+    <p style="margin-top: 24px; font-size: 14px; color: ${TEXT_MUTED};">This link will expire in 1 hour. For security, never share this link with anyone.</p>
+  `);
+};
+
 export const getSubmissionStatusEmail = (userName: string, title: string, status: "approved" | "rejected", feedback?: string) => {
   const isApproved = status === "approved";
   const accentColor = isApproved ? "#10B981" : "#EF4444";
