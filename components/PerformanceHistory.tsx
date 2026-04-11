@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, TrendingUp, Target, Clock, Calendar, BarChart3, Loader2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, Target, Clock, Calendar, BarChart3, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 
 interface Attempt {
@@ -20,9 +22,11 @@ interface Attempt {
 
 interface AttemptAnswer {
   id: string;
+  question_id: string;
   selected_option: string;
   is_correct: boolean;
   questions: {
+    id: string;
     question_text: string;
     option_a: string;
     option_b: string;
@@ -58,6 +62,11 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
   const [selectedAttempt, setSelectedAttempt] = useState<Attempt | null>(null);
   const [attemptAnswers, setAttemptAnswers] = useState<AttemptAnswer[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [bookmarkedQs, setBookmarkedQs] = useState<Set<string>>(new Set());
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [qToRemove, setQToRemove] = useState<string | null>(null);
+
   const supabase = createClient();
 
   const fetchAttemptDetails = async (attempt: Attempt) => {
@@ -68,9 +77,11 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
         .from('test_attempt_answers')
         .select(`
           id,
+          question_id,
           selected_option,
           is_correct,
           questions (
+            id,
             question_text,
             option_a,
             option_b,
@@ -116,6 +127,18 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
 
         if (error) throw error;
         setHistory(data as unknown as Attempt[] || []);
+
+        // Fetch user bookmarks
+        const { data: bData } = await supabase
+          .from('user_bookmarks')
+          .select('question_id')
+          .eq('user_id', user.id)
+          .not('question_id', 'is', null);
+        
+        if (bData) {
+          setBookmarkedQs(new Set(bData.map(b => b.question_id as string)));
+        }
+        setUserId(user.id);
       } catch (error) {
         console.error("Error fetching performance history:", error);
       } finally {
@@ -130,6 +153,60 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
   const percentages = history.map(t => Math.round((t.score / Math.max(t.total_questions, 1)) * 100));
   const avgScore = totalTests > 0 ? Math.round(percentages.reduce((a, b) => a + b, 0) / totalTests) : 0;
   const bestScore = totalTests > 0 ? Math.max(...percentages) : 0;
+
+  const toggleBookmark = async (qId: string) => {
+    if (!userId) {
+      toast.error("Please login to bookmark questions.");
+      return;
+    }
+
+    const isBookmarked = bookmarkedQs.has(qId);
+    
+    if (isBookmarked) {
+      setQToRemove(qId);
+      setIsConfirmModalOpen(true);
+      return;
+    }
+
+    await executeBookmarkUpdate(qId, false);
+  };
+
+  const executeBookmarkUpdate = async (qId: string, isRemove: boolean) => {
+    // Optimistic Update
+    setBookmarkedQs(prev => {
+      const next = new Set(prev);
+      if (isRemove) next.delete(qId);
+      else next.add(qId);
+      return next;
+    });
+
+    try {
+      if (isRemove) {
+        await supabase.from('user_bookmarks').delete().match({ user_id: userId, question_id: qId });
+        toast.success("Bookmark removed");
+      } else {
+        await supabase.from('user_bookmarks').insert({ user_id: userId, question_id: qId });
+        toast.success("Question bookmarked");
+      }
+    } catch (error) {
+       // Revert optimistic update
+       setBookmarkedQs(prev => {
+        const next = new Set(prev);
+        if (isRemove) next.add(qId);
+        else next.delete(qId);
+        return next;
+      });
+      toast.error("Failed to update bookmark.");
+    }
+  };
+
+  const handleConfirmRemoveQ = async () => {
+    if (qToRemove) {
+      await executeBookmarkUpdate(qToRemove, true);
+      setQToRemove(null);
+      setIsConfirmModalOpen(false);
+    }
+  };
 
   const getScoreColor = (pct: number) => {
     if (pct >= 80) return "text-accent";
@@ -333,7 +410,22 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
                                 <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${ans.is_correct ? "bg-accent/20 text-accent" : "bg-destructive/20 text-destructive"}`}>
                                   {i + 1}
                                 </span>
-                                <p className="text-sm font-medium text-foreground leading-relaxed">{q.question_text}</p>
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-foreground leading-relaxed">{q.question_text}</p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-accent"
+                                  onClick={() => toggleBookmark(q.id)}
+                                  title={bookmarkedQs.has(q.id) ? "Remove Bookmark" : "Bookmark Question"}
+                                >
+                                  {bookmarkedQs.has(q.id) ? (
+                                    <BookmarkCheck className="h-4 w-4 text-accent" />
+                                  ) : (
+                                    <Bookmark className="h-4 w-4" />
+                                  )}
+                                </Button>
                               </div>
                               
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-9">
@@ -378,6 +470,14 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
                 </motion.div>
               )}
             </AnimatePresence>
+            <ConfirmModal
+              isOpen={isConfirmModalOpen}
+              onClose={() => setIsConfirmModalOpen(false)}
+              onConfirm={handleConfirmRemoveQ}
+              title="Remove Bookmark?"
+              description="Are you sure you want to remove this question from your bookmarks?"
+              confirmText="Remove"
+            />
           </>
         )}
       </motion.div>

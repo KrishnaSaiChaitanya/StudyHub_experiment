@@ -57,25 +57,33 @@ export const formatSubjectName = (subject: SubjectCategory): string => {
     .join(' ');
 };
 
-export const SUBJECT_COLORS = [
-  "hsl(197 100% 50%)",
-  "hsl(142 71% 45%)",
-  "hsl(38 92% 50%)",
-  "hsl(280 67% 55%)",
-  "hsl(350 80% 55%)",
-  "hsl(210 60% 50%)",
-  "hsl(160 50% 45%)",
-  "hsl(20 80% 60%)"
-];
+export const SUBJECT_COLOR_MAP: Record<SubjectCategory, string> = {
+  general: "hsl(210 20% 50%)",
+  // Foundation
+  principles_and_practice_of_accounting: "hsl(197 100% 50%)", // Blue
+  business_laws: "hsl(142 71% 45%)",                         // Green
+  business_math_logical_reasoning_and_statistics: "hsl(38 92% 50%)", // Amber
+  business_economics: "hsl(280 67% 55%)",                    // Purple
+  
+  // Intermediate
+  advanced_accounting: "hsl(350 80% 55%)",                   // Pink/Red
+  corporate_and_other_laws: "hsl(210 60% 50%)",              // Sky
+  taxation: "hsl(160 50% 45%)",                              // Teal
+  cost_and_management_accounting: "hsl(20 80% 60%)",         // Orange
+  auditing_and_ethics: "hsl(262 83% 58%)",                   // Indigo
+  financial_management_and_strategic_management: "hsl(316 70% 50%)", // Magenta
+  
+  // Final
+  financial_reporting: "hsl(174 100% 33%)",                  // Dark Teal
+  advanced_financial_management: "hsl(45 93% 47%)",          // Gold
+  advanced_auditing_assurance_and_professional_ethics: "hsl(10 80% 50%)", // Vermilion
+  direct_tax_laws: "hsl(200 70% 40%)",                       // Steel Blue
+  indirect_tax_laws: "hsl(43 100% 50%)",                     // Yellow
+  integrated_business_solutions: "hsl(291 64% 42%)",         // Deep Purple
+};
+
+export const SUBJECT_COLORS = Object.values(SUBJECT_COLOR_MAP);
 
 export const getSubjectColor = (subject: SubjectCategory): string => {
-  if (subject === 'general') return "hsl(210 20% 50%)";
-  
-  // Consistent color selection based on the subject string
-  let hash = 0;
-  for (let i = 0; i < subject.length; i++) {
-    hash = subject.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % SUBJECT_COLORS.length;
-  return SUBJECT_COLORS[index];
+  return SUBJECT_COLOR_MAP[subject] || SUBJECT_COLOR_MAP.general;
 };

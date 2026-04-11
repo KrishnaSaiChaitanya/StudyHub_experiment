@@ -81,10 +81,10 @@ const Practice = () => {
   }, [supabase, studentLevel, studentSubjects, studentLoading]);
 
   const resources = [
-    { icon: FileText, title: "Mock Test Papers (MTP)", type: "mtp", description: "ICAI-aligned mock test papers for Foundation, Intermediate, and Final levels.", link: "/practice/mtp", isDisabled: false, unit: "Papers" },
-    { icon: FileText, title: "Revision Test Papers (RTP)", type: "rtp", description: "Official revision test papers with detailed solutions and explanations.", link: "/practice/rtp", isDisabled: false, unit: "Papers" },
-    { icon: FileText, title: "Previous Year Questions", type: "pyq", description: "Comprehensive PYQ bank organized by subject, chapter, and difficulty.", link: "/practice/pyq", isDisabled: false, unit: "Papers" },
-    { icon: ClipboardCheck, title: "Online Mock Exams", type: "online", description: "Full-length timed mock exams with auto-grading and performance analysis.", link: "/practice/online", isDisabled: false, unit: "Tests" },
+    { icon: FileText, title: "Mock Test Papers (MTP)", type: "mtp", description: " Simulate exams and strengthen concepts with MTPs.", link: "/practice/mtp", isDisabled: false, unit: "Papers" },
+    { icon: FileText, title: "Revision Test Papers (RTP)", type: "rtp", description: "Refine concepts with ICAI-aligned revision practice tests", link: "/practice/rtp", isDisabled: false, unit: "Papers" },
+    { icon: FileText, title: "Previous Year Questions", type: "pyq", description: "Understand examiner mindset through previous year questions", link: "/practice/pyq", isDisabled: false, unit: "Papers" },
+    { icon: ClipboardCheck, title: "Online Mock Exams", type: "online", description: "Simulate final exam pressure and boost performance", link: "/practice/online", isDisabled: false, unit: "Tests" },
   ];
 
   return (
@@ -144,8 +144,8 @@ const Practice = () => {
               className="relative overflow-hidden rounded-xl bg-primary p-8 text-center"
             >
               <Award className="mx-auto h-8 w-8 text-accent" />
-              <h3 className="mt-4 text-xl font-bold text-primary-foreground">Take a Full Mock Exam</h3>
-              <p className="mt-2 text-xs text-primary-foreground/50">Simulate real CA exam conditions with timed, full-length tests.</p>
+              <h3 className="mt-4 text-xl font-bold text-primary-foreground">Take a MCQ Mock Exam</h3>
+              <p className="mt-2 text-xs text-primary-foreground/50"> Revise concepts, strengthen recall, and excel confidently.</p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <Button size="lg" onClick={() => router.push('/practice/mock-exams')} className="bg-accent text-accent-foreground shadow-accent hover:bg-accent/90">View Mock Exams</Button>
                 <Button size="lg" variant="outline" onClick={() => router.push('/practice/performance')} className="border-accent/30 text-accent hover:bg-accent/10">View My Performance</Button>

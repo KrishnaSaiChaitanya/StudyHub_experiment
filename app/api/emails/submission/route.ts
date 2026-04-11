@@ -47,6 +47,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, messageId: result.messageId });
   } catch (error: any) {
+    console.log(error);
     console.error("API error for email:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

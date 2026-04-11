@@ -28,6 +28,8 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
   const [videoName, setVideoName] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [videoDuration, setVideoDuration] = useState("");
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
 
   // Courses state
@@ -81,6 +83,8 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
     setVideoName(v.name);
     setVideoUrl(v.url);
     setVideoDuration(v.duration_minutes ? v.duration_minutes.toString() : "");
+    setThumbnailUrl(v.thumbnail_url || "");
+    setThumbnailFile(null);
     setEditingVideoId(v.id);
     setShowAddVideo(true);
   };
@@ -88,12 +92,34 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
   const handleSaveVideo = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const payload = {
+    const payload: any = {
       faculty_id: id,
       name: videoName,
       url: videoUrl,
       duration_minutes: videoDuration ? parseInt(videoDuration) : null,
     };
+
+    if (thumbnailFile) {
+      try {
+        const formData = new FormData();
+        formData.append("file", thumbnailFile);
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        if (!uploadRes.ok) throw new Error("Failed to upload thumbnail");
+        const uploadData = await uploadRes.json();
+        payload.thumbnail_url = uploadData.url;
+      } catch (uploadError: any) {
+        toast({ title: "Thumbnail upload failed", description: uploadError.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+    } else if (thumbnailUrl) {
+      payload.thumbnail_url = thumbnailUrl;
+    } else {
+      payload.thumbnail_url = null;
+    }
     
     let error;
     if (editingVideoId) {
@@ -109,6 +135,7 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
     } else {
       toast({ title: "Video saved securely!" });
       setVideoName(""); setVideoUrl(""); setVideoDuration("");
+      setThumbnailFile(null); setThumbnailUrl("");
       setEditingVideoId(null);
       setShowAddVideo(false);
       fetchData();
@@ -256,7 +283,14 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
         <TabsContent value="videos" className="mt-6 space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Demo Videos</h2>
-            <Button onClick={() => setShowAddVideo(!showAddVideo)} className="gap-2">
+            <Button onClick={() => {
+              if (showAddVideo) {
+                setEditingVideoId(null);
+                setVideoName(""); setVideoUrl(""); setVideoDuration("");
+                setThumbnailFile(null); setThumbnailUrl("");
+              }
+              setShowAddVideo(!showAddVideo);
+            }} className="gap-2">
               <Plus className="h-4 w-4" /> {showAddVideo ? "Cancel" : "Add Video"}
             </Button>
           </div>
@@ -277,6 +311,25 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Duration (minutes)</label>
                     <Input type="number" required value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder="E.g. 45" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Thumbnail Image</label>
+                    <div className="flex flex-col gap-2">
+                      <Input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] ?? null;
+                          setThumbnailFile(file);
+                          if (file) setThumbnailUrl(URL.createObjectURL(file));
+                        }} 
+                      />
+                      {thumbnailUrl && (
+                        <div className="relative h-20 w-32 overflow-hidden rounded-md border border-border">
+                          <img src={thumbnailUrl} alt="Thumbnail preview" className="h-full w-full object-cover" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="col-span-full pt-2">
                     <Button type="submit" disabled={saving}>

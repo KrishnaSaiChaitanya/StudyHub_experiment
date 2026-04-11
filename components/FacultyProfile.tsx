@@ -14,6 +14,10 @@ interface FacultyData {
   students: string;
   level: string;
   profile_picture?: string | null;
+  phone?: string;
+  location?: string;
+  website?: string;
+  email?: string;
 }
 
 interface FacultyProfileProps {
@@ -95,10 +99,10 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
                 <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />10+ Years Exp</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-accent" />{faculty.name.split(" ")[1]?.toLowerCase() || 'XXXX'}@castudy.in</span>
-                <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-accent" />+91 XXXXX XXXXX</span>
-                <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-accent" />New Delhi</span>
-                <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-accent" />castudy.in</span>
+                <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-accent" />{faculty.email ?? "xxxxx@gmail.com"}</span>
+                <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-accent" />( {faculty.phone ?? "+91 XXXXX XXXXX"} ) </span>
+                <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-accent" />{faculty.location ?? "xxxxx"}</span>
+                <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-accent" />{faculty.website ?? "xxxxx"}</span>
               </div>
             </div>
             {/* <Button className="bg-accent text-accent-foreground hover:bg-accent/90" size="sm">Follow</Button> */}
@@ -157,10 +161,14 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
                     className="group flex cursor-pointer items-center gap-4 border-border bg-card p-4 transition-all hover:border-accent/30"
                     onClick={() => window.open(video.url, '_blank')}
                   >
-                    <div className="relative flex h-16 w-24 shrink-0 items-center justify-center rounded-lg bg-primary">
-                      <span className="text-xs font-bold text-primary-foreground/60">{getThumbnailText(video.name)}</span>
-                      <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-accent/0 transition-all group-hover:bg-accent/20">
-                        <Play className="h-5 w-5 text-accent opacity-0 transition-opacity group-hover:opacity-100" />
+                    <div className="relative flex h-16 w-24 shrink-0 items-center justify-center rounded-lg bg-primary overflow-hidden">
+                      {video.thumbnail_url ? (
+                        <img src={video.thumbnail_url} alt={video.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-bold text-primary-foreground/60">{getThumbnailText(video.name)}</span>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-all group-hover:opacity-100">
+                        <Play className="h-5 w-5 text-white" />
                       </div>
                     </div>
                     <div className="min-w-0 flex-1">

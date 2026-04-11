@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Play, Pause, RotateCcw, Flame, Clock, CalendarDays,
   BookOpen, Plus, Check, Filter, Trash2, Save, Loader2,
-  Lock
+  Lock, Timer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
@@ -101,15 +101,32 @@ const ProgressDashboardView = ({ onBack }: Props) => {
 
   const {
     seconds,
+    remaining,
     running,
     activeSubject,
+    timerMode,
+    timerDuration,
     startTimer,
     pauseTimer,
     resetTimer,
     setActiveSubject,
+    setTimerMode,
+    setTimerDuration,
     saveSession,
     isSaving: isSavingSession
   } = useStudyTimer();
+
+  const [inputHours, setInputHours] = useState(0);
+  const [inputMinutes, setInputMinutes] = useState(0);
+
+  const applyCustomDuration = () => {
+    const totalSeconds = (inputHours * 3600) + (inputMinutes * 60);
+    if (totalSeconds > 0) {
+      setTimerDuration(totalSeconds);
+      // We need a way to set 'remaining' in the provider too. 
+      // I'll update the provider to handle this when setTimerDuration is called.
+    }
+  };
 
   // Redirect if no active subject and subjects available
   useEffect(() => {
@@ -351,6 +368,72 @@ console.log(todaySessions);
             </div>
             <ProFeatureLock label="Unlock Study timer with Pro Subscription">
               <div className="p-6 flex flex-col items-center">
+                {/* Mode Toggle */}
+                <div className="flex justify-center mb-5">
+                  <div className="inline-flex rounded-lg border border-border bg-secondary p-1">
+                    <button
+                      onClick={() => setTimerMode("stopwatch")}
+                      className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-all ${
+                        timerMode === "stopwatch"
+                          ? "bg-accent text-accent-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Clock className="h-3.5 w-3.5" /> Stopwatch
+                    </button>
+                    <button
+                      onClick={() => setTimerMode("timer")}
+                      className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-all ${
+                        timerMode === "timer"
+                          ? "bg-accent text-accent-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Timer className="h-3.5 w-3.5" /> Timer
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Duration Input (only in timer mode) */}
+                {timerMode === "timer" && (
+                  <div className="flex items-center justify-center gap-2 mb-6">
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={23}
+                        value={inputHours}
+                        onChange={(e) => setInputHours(Math.max(0, Math.min(23, Number(e.target.value) || 0)))}
+                        disabled={running}
+                        className="w-14 rounded-lg border border-input bg-background px-2 py-1.5 text-center text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                      <span className="text-xs text-muted-foreground">hr</span>
+                    </div>
+                    <span className="text-muted-foreground font-bold">:</span>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={59}
+                        value={inputMinutes}
+                        onChange={(e) => setInputMinutes(Math.max(0, Math.min(59, Number(e.target.value) || 0)))}
+                        disabled={running}
+                        className="w-14 rounded-lg border border-input bg-background px-2 py-1.5 text-center text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                      <span className="text-xs text-muted-foreground">min</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={applyCustomDuration}
+                      disabled={running || (inputHours === 0 && inputMinutes === 0)}
+                      className="ml-1 text-xs h-8"
+                    >
+                      Set
+                    </Button>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-2 mb-8 justify-center">
                   {dynamicSubjects.map((s) => (
                     <button
@@ -372,77 +455,89 @@ console.log(todaySessions);
                     <motion.circle
                       cx="110" cy="110" r="95" fill="none" stroke={getSubjectColor(activeSubject || subjects[0])}
                       strokeWidth="6" strokeLinecap="round" strokeDasharray={2 * Math.PI * 95}
-                      strokeDashoffset={-(2 * Math.PI * 95 * ((Math.min(seconds, 3600) / 3600)))}
+                      strokeDashoffset={
+                        timerMode === 'stopwatch' 
+                        ? -(2 * Math.PI * 95 * ((Math.min(seconds, 3600) / 3600)))
+                        : -(2 * Math.PI * 95 * (1 - (timerDuration > 0 ? remaining / timerDuration : 0)))
+                      }
                       style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
+                      animate={{ 
+                        strokeDashoffset: timerMode === 'stopwatch' 
+                          ? -(2 * Math.PI * 95 * ((Math.min(seconds, 3600) / 3600)))
+                          : -(2 * Math.PI * 95 * (1 - (timerDuration > 0 ? remaining / timerDuration : 0)))
+                      }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <p className="text-3xl font-mono font-bold">{formatTime(seconds)}</p>
+                    <p className="text-3xl font-mono font-bold">
+                      {formatTime(timerMode === 'stopwatch' ? seconds : remaining)}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1 truncate max-w-[120px]">{activeSubject ? getSubjectAbbreviation(activeSubject) : ""}</p>
                   </div>
                 </div>
 
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-full border-border"
-                  title="Reset Counter"
-                  onClick={resetTimer}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-                
-                <Button
-                  className="h-14 w-14 rounded-full shadow-md"
-                  style={{ backgroundColor: getSubjectColor(activeSubject || subjects[0]) }}
-                  onClick={() => running ? pauseTimer() : startTimer()}
-                >
-                  {running ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 text-white ml-0.5" />}
-                </Button>
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 rounded-full border-border"
+                    title="Reset Counter"
+                    onClick={resetTimer}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    className="h-14 w-14 rounded-full shadow-md"
+                    style={{ backgroundColor: getSubjectColor(activeSubject || subjects[0]) }}
+                    onClick={() => running ? pauseTimer() : startTimer()}
+                    disabled={timerMode === "timer" && remaining === 0}
+                  >
+                    {running ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 text-white ml-0.5" />}
+                  </Button>
 
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-full border-border bg-accent/10 hover:bg-accent/20 text-accent"
-                  title="Save Session"
-                  onClick={handleSaveSession}
-                  disabled={seconds === 0 || isSavingSession}
-                >
-                  <Save className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="mt-8 w-full text-left">
-                <h3 className="text-xs font-semibold mb-3">Today's Sessions</h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {sessions.slice(0, 10).map((session) => (
-                    <div
-                      key={session.id}
-                      className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2.5"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: getSubjectColor(session.category) }}
-                        />
-                        <span className="text-xs font-medium">{getSubjectAbbreviation(session.category)}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] text-muted-foreground">
-                          {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        <span className="text-xs font-semibold">
-                          {formatTime(session.duration_seconds)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {sessions.length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center">No sessions yet.</p>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 rounded-full border-border bg-accent/10 hover:bg-accent/20 text-accent"
+                    title="Save Session"
+                    onClick={handleSaveSession}
+                    disabled={(timerMode === 'stopwatch' ? seconds === 0 : (timerDuration - remaining) === 0) || isSavingSession}
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
+
+                <div className="mt-8 w-full text-left">
+                  <h3 className="text-xs font-semibold mb-3">Today's Sessions</h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {sessions.slice(0, 10).map((session) => (
+                      <div
+                        key={session.id}
+                        className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2.5"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: getSubjectColor(session.category) }}
+                          />
+                          <span className="text-xs font-medium">{getSubjectAbbreviation(session.category)}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <span className="text-xs font-semibold">
+                            {formatTime(session.duration_seconds)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {sessions.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center">No sessions yet.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </ProFeatureLock>
           </div>
@@ -465,19 +560,24 @@ console.log(todaySessions);
               >
                 All
               </button>
-              {[ {value: 'general', label: 'General'}, ...dynamicSubjects].map((s) => (
-                <button
-                  key={s.value}
-                  onClick={() => setTodoFilter(s.value)}
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-all ${
-                    todoFilter === s.value
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-secondary text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
+              {[{ value: 'general', label: 'General', color: getSubjectColor('general' as SubjectCategory) }, ...dynamicSubjects].map((s) => {
+                const isSelected = todoFilter === s.value;
+                const subjColor = s.color;
+                return (
+                  <button
+                    key={s.value}
+                    onClick={() => setTodoFilter(s.value)}
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-all ${
+                      isSelected
+                        ? "text-white shadow-sm"
+                        : "bg-secondary text-muted-foreground hover:text-foreground"
+                    }`}
+                    style={isSelected ? { backgroundColor: subjColor } : {}}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="flex gap-2 mb-4 shrink-0">

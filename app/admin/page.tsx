@@ -1,78 +1,255 @@
-"use client";
-
+"use client"
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { Mail, FileText, ArrowUpRight, Clock, Plus, Users, BookOpen, Layers } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function DashboardOverview() {
   const [counts, setCounts] = useState({ planners: 0, tests: 0, faculty: 0 });
+  const [recentStats, setRecentStats] = useState({ contact: 0, submissions: 0 });
+  const [recentContactData, setRecentContactData] = useState<any[]>([]);
+  const [recentSubmissionData, setRecentSubmissionData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
-    async function fetchCounts() {
-      const [pRes, tRes, fRes] = await Promise.all([
+    async function fetchDashboardData() {
+      setLoading(true);
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+
+      const [pRes, tRes, fRes, cRes, sRes, contactRes, submissionRes] = await Promise.all([
         supabase.from('study_planners').select('*', { count: 'exact', head: true }),
         supabase.from('tests').select('*', { count: 'exact', head: true }),
-        supabase.from('faculty').select('*', { count: 'exact', head: true })
+        supabase.from('faculty').select('*', { count: 'exact', head: true }),
+        supabase.from('contact_submissions').select('*', { count: 'exact', head: true }).gte('created_at', twoDaysAgo),
+        supabase.from('community_submissions').select('*', { count: 'exact', head: true }).gte('created_at', twoDaysAgo),
+        supabase.from('contact_submissions').select('*').gte('created_at', twoDaysAgo).order('created_at', { ascending: false }).limit(3),
+        supabase.from('community_submissions').select('*').gte('created_at', twoDaysAgo).order('created_at', { ascending: false }).limit(3)
       ]);
+
       setCounts({
         planners: pRes.count || 0,
         tests: tRes.count || 0,
         faculty: fRes.count || 0
       });
+      setRecentStats({
+        contact: cRes.count || 0,
+        submissions: sRes.count || 0
+      });
+      setRecentContactData(contactRes.data || []);
+      setRecentSubmissionData(submissionRes.data || []);
+      setLoading(false);
     }
-    fetchCounts();
+    fetchDashboardData();
   }, []);
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    return `${Math.floor(diffInHours / 24)}d ago`;
+  };
+
   return (
-   <div>
-  {/* Header Section with Redirect Button */}
-  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-    <div>
-      <h1 className="text-3xl font-bold text-foreground tracking-tight">Overview</h1>
-      <p className="text-muted-foreground text-lg">
-        Welcome to the StudyHub admin dashboard. Manage content and users here.
-      </p>
-    </div>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent inline-block">
+            Dashboard Overview
+          </h1>
+          <p className="text-muted-foreground text-lg font-medium">
+            Review your platform's performance and recent activity at a glance.
+          </p>
+        </div>
 
-    <a
-      href="/dashboard"
-      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors shadow-sm w-fit"
-    >
-      {/* Optional Icon for a professional look */}
-      <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="18" height="18" 
-        viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      >
-        <rect width="7" height="9" x="3" y="3" rx="1" />
-        <rect width="7" height="5" x="14" y="3" rx="1" />
-        <rect width="7" height="9" x="14" y="12" rx="1" />
-        <rect width="7" height="5" x="3" y="16" rx="1" />
-      </svg>
-      Main Application
-    </a>
-  </div>
+        <a
+          href="/dashboard"
+          className="group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 w-fit"
+        >
+          <Layers className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+          Main Application
+          <ArrowUpRight className="w-4 h-4 opacity-70" />
+        </a>
+      </div>
 
-  {/* Stats Grid */}
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <div className="bg-card border border-border p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-      <h3 className="font-semibold text-lg text-foreground mb-2">Study Planners</h3>
-      <p className="text-4xl font-bold text-primary mb-1">{counts.planners}</p>
-      <p className="text-sm text-muted-foreground">Total planners available</p>
-    </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="relative overflow-hidden bg-card border border-border/50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <BookOpen className="w-20 h-20 text-primary" />
+          </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-lg text-foreground">Study Planners</h3>
+          </div>
+          <p className="text-5xl font-black text-primary mb-2 tabular-nums">
+            {loading ? '---' : counts.planners}
+          </p>
+        
+        </div>
 
-    <div className="bg-card border border-border p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-      <h3 className="font-semibold text-lg text-foreground mb-2">Tests & MCQs</h3>
-      <p className="text-4xl font-bold text-blue-500 mb-1">{counts.tests}</p>
-      <p className="text-sm text-muted-foreground">Active mock tests</p>
-    </div>
+        <div className="relative overflow-hidden bg-card border border-border/50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Layers className="w-20 h-20 text-blue-500" />
+          </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+              <Layers className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-lg text-foreground">Tests & MCQs</h3>
+          </div>
+          <p className="text-5xl font-black text-blue-500 mb-2 tabular-nums">
+            {loading ? '---' : counts.tests}
+          </p>
+         
+        </div>
 
-    <div className="bg-card border border-border p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-      <h3 className="font-semibold text-lg text-foreground mb-2">Faculty</h3>
-      <p className="text-4xl font-bold text-green-500 mb-1">{counts.faculty}</p>
-      <p className="text-sm text-muted-foreground">Registered faculty members</p>
+        <div className="relative overflow-hidden bg-card border border-border/50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Users className="w-20 h-20 text-green-500" />
+          </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
+              <Users className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-lg text-foreground">Faculty</h3>
+          </div>
+          <p className="text-5xl font-black text-green-500 mb-2 tabular-nums">
+            {loading ? '---' : counts.faculty}
+          </p>
+       
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Recent Contact Us Submissions */}
+        <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+          <div className="p-6 border-b border-border/50 bg-muted/5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-500 shadow-inner">
+                <Mail className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Contact Requests</h2>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Last 48 Hours</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-2xl font-black text-orange-500">{recentStats.contact}</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">New Messages</span>
+            </div>
+          </div>
+          
+          <div className="p-4 flex-1 space-y-3">
+            {loading ? (
+              Array(3).fill(0).map((_, i) => (
+                <div key={i} className="h-16 rounded-xl bg-muted/20 animate-pulse" />
+              ))
+            ) : recentContactData.length > 0 ? (
+              recentContactData.map((contact) => (
+                <div key={contact.id} className="group p-4 rounded-xl border border-transparent hover:border-border/50 hover:bg-muted/30 transition-all flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-foreground/5 flex items-center justify-center font-bold text-foreground/40 uppercase group-hover:bg-orange-500/10 group-hover:text-orange-500 transition-colors">
+                      {contact.name?.[0] || '?'}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-foreground line-clamp-1">{contact.name}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{contact.subject || 'Inquiry'}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[10px] font-bold text-muted-foreground inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {formatDate(contact.created_at)}
+                    </span>
+                    <Badge variant="outline" className="text-[9px] font-extrabold uppercase bg-background px-1.5 h-4 border-muted">Active</Badge>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="h-40 flex flex-col items-center justify-center gap-3 text-muted-foreground bg-muted/10 rounded-xl border border-dashed">
+                <Mail className="w-8 h-8 opacity-20" />
+                <p className="text-sm font-medium">No new requests in the last 2 days</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-4 border-t border-border/50 bg-muted/5">
+            <a href="/admin/contact-us" className="text-xs font-bold text-primary hover:text-primary/80 transition-colors flex items-center justify-center gap-1.5">
+              View All Submissions <ArrowUpRight className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
+
+        {/* Recent Community Submissions */}
+        <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+          <div className="p-6 border-b border-border/50 bg-muted/5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-500 shadow-inner">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">New Submissions</h2>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Last 48 Hours</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-2xl font-black text-purple-500">{recentStats.submissions}</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Material Added</span>
+            </div>
+          </div>
+          
+          <div className="p-4 flex-1 space-y-3">
+            {loading ? (
+              Array(3).fill(0).map((_, i) => (
+                <div key={i} className="h-16 rounded-xl bg-muted/20 animate-pulse" />
+              ))
+            ) : recentSubmissionData.length > 0 ? (
+              recentSubmissionData.map((sub) => (
+                <div key={sub.id} className="group p-4 rounded-xl border border-transparent hover:border-border/50 hover:bg-muted/30 transition-all flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-purple-500/10 group-hover:text-purple-500 transition-colors">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-sm text-foreground line-clamp-1">{sub.title}</h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <Badge variant="secondary" className="text-[9px] font-bold h-4 px-1">{sub.category}</Badge>
+                        <span className="text-[10px] text-muted-foreground italic truncate">by {sub.uploader_name || 'User'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[10px] font-bold text-muted-foreground inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {formatDate(sub.created_at)}
+                    </span>
+                    <Badge variant={sub.status === 'approved' ? 'default' : 'outline'} className="text-[9px] font-extrabold uppercase px-1.5 h-4">
+                      {sub.status || 'Pending'}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="h-40 flex flex-col items-center justify-center gap-3 text-muted-foreground bg-muted/10 rounded-xl border border-dashed">
+                <FileText className="w-8 h-8 opacity-20" />
+                <p className="text-sm font-medium">No new submissions in the last 2 days</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-4 border-t border-border/50 bg-muted/5">
+            <a href="/admin/community-submissions" className="text-xs font-bold text-primary hover:text-primary/80 transition-colors flex items-center justify-center gap-1.5">
+              Review Submissions <ArrowUpRight className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
   );
 }
+
