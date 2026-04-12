@@ -1,5 +1,10 @@
 import BookmarkQuestionClient from "./BookmarkQuestionClient";
 
-export default function BookmarkQuestionPage({ params }: { params: { id: string } }) {
-  return <BookmarkQuestionClient id={params.id} />;
+export default async function BookmarkQuestionPage({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const { id } = await params;
+  return <BookmarkQuestionClient id={id} />;
 }
