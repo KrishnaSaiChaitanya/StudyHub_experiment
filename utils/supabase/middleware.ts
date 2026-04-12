@@ -68,13 +68,19 @@ export const updateSession = async (request: NextRequest) => {
 
     // 2. Premium content check: Only run this query for premium paths to avoid delaying other pages
     if (isPremiumPath && user && !isUserAdmin) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_perminent_paid_user")
+        .eq("id", user.id)
+        .single();
+
       const { data: subscriptionData } = await supabase
         .from("subscriptions")
         .select("status")
         .eq("id", user.id)
         .single();
 
-      const isSubscribed = subscriptionData?.status === "active";
+      const isSubscribed = profile?.is_perminent_paid_user || subscriptionData?.status === "active";
       
       if (!isSubscribed) {
         return NextResponse.redirect(new URL("/pricing", request.url));

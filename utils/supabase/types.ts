@@ -39,6 +39,7 @@ export interface Profile {
   student_type: StudentLevel | null;
   current_streak: number;
   last_active_date: string | null; // 'YYYY-MM-DD'
+  is_perminent_paid_user: boolean;
   created_at: string; // ISO String
   updated_at: string;
 }
@@ -49,6 +50,8 @@ export interface Subscription {
   razorpay_customer_id: string | null;
   plan_id: string | null;
   status: string | null;
+  plan_name: string | null;
+  expiry_date: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -64,15 +64,23 @@ export const fetchAndCacheAuthState = async (supabase: SupabaseClient) => {
       return { user: null, isSubscribed: false };
     }
 
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_perminent_paid_user")
+      .eq("id", user.id)
+      .single();
+
     const { data: subscriptionData, error: subError } = await supabase
       .from("subscriptions")
       .select("status, plan_name, expiry_date")
       .eq("id", user.id)
       .single();
 
-    const isSubscribed = Boolean(subscriptionData?.status === "active");
-    cacheAuthState(user, isSubscribed, subscriptionData?.plan_name, subscriptionData?.expiry_date);
-    return { user, isSubscribed, planName: subscriptionData?.plan_name, expiryDate: subscriptionData?.expiry_date };
+    const isSubscribed = profile?.is_perminent_paid_user || Boolean(subscriptionData?.status === "active");
+    const planName = profile?.is_perminent_paid_user ? (subscriptionData?.plan_name || "Lifetime Pro") : subscriptionData?.plan_name;
+    
+    cacheAuthState(user, isSubscribed, planName, subscriptionData?.expiry_date);
+    return { user, isSubscribed, planName, expiryDate: subscriptionData?.expiry_date };
   } catch (error) {
     clearAuthCache();
     return { user: null, isSubscribed: false };

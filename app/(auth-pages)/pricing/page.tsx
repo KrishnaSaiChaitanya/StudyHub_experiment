@@ -41,6 +41,7 @@ interface PlanInfo {
   tagVariant?: "default" | "secondary" | "destructive" | "outline";
   icon: React.ReactNode;
   planId: string | undefined;
+  amount: number;
 }
 
 const proPlans: PlanInfo[] = [
@@ -51,6 +52,7 @@ const proPlans: PlanInfo[] = [
     sub: "/month",
     icon: <Calendar className="h-5 w-5" />,
     planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID_MONTHLY,
+    amount: 149,
   },
   {
     id: "attempt",
@@ -61,6 +63,7 @@ const proPlans: PlanInfo[] = [
     tagVariant: "default",
     icon: <BookOpen className="h-5 w-5" />,
     planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID_ATTEMPT || process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID,
+    amount: 399,
   },
   {
     id: "annual",
@@ -71,6 +74,7 @@ const proPlans: PlanInfo[] = [
     tagVariant: "secondary",
     icon: <Crown className="h-5 w-5" />,
     planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID_ANNUAL,
+    amount: 1199,
   },
 ];
 
@@ -119,35 +123,49 @@ const Pricing = () => {
         return;
       }
 
-      const response = await fetch("/api/razorpay/create-subscription", {
+      const isAttemptBased = selectedPlan === "attempt";
+      const apiUrl = isAttemptBased ? "/api/razorpay/create-order" : "/api/razorpay/create-subscription";
+      const requestBody = isAttemptBased 
+        ? { amount: currentPlan.amount, plan_name: currentPlan.name }
+        : { plan_id: currentPlan.planId };
+
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan_id: currentPlan.planId }),
+        body: JSON.stringify(requestBody),
       });
       
       const data = await response.json();
       
-      if (!data.subscriptionId) {
+      if (!data.subscriptionId && !data.orderId) {
         toast.error(data.error || "Could not initialize payment");
         return;
       }
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        subscription_id: data.subscriptionId,
+        ...(isAttemptBased ? { order_id: data.orderId } : { subscription_id: data.subscriptionId }),
         name: "Study Hub Pro",
-        description: `${currentPlan.name} Subscription`,
+        description: `${currentPlan.name} ${isAttemptBased ? 'One-time Payment' : 'Subscription'}`,
         handler: async function (response: any) {
-          const verifyRes = await fetch("/api/razorpay/verify-subscription", {
+          const verifyPath = isAttemptBased ? "verify-order" : "verify-subscription";
+          const verifyBody = isAttemptBased ? {
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+            plan_name: currentPlan.name
+          } : {
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_subscription_id: response.razorpay_subscription_id,
+            razorpay_signature: response.razorpay_signature,
+            plan_id: currentPlan.planId,
+            plan_name: currentPlan.name
+          };
+
+          const verifyRes = await fetch(`/api/razorpay/${verifyPath}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_subscription_id: response.razorpay_subscription_id,
-              razorpay_signature: response.razorpay_signature,
-              plan_id: currentPlan.planId,
-              plan_name: currentPlan.name
-            }),
+            body: JSON.stringify(verifyBody),
           });
           
           const verifyData = await verifyRes.json();
