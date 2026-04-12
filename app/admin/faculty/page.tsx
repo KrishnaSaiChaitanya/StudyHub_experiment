@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { SUBJECT_MAPPING, formatSubjectName } from "@/utils/subjects";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { TableFilters } from "@/components/admin/TableFilters";
 
 export default function FacultyDashboard() {
   const supabase = createClient();
@@ -24,6 +25,7 @@ export default function FacultyDashboard() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [facultyToDelete, setFacultyToDelete] = useState<string | null>(null);
+  const [filters, setFilters] = useState({ column: "name", value: "" });
 
   // Form State
   const [name, setName] = useState("");
@@ -31,6 +33,9 @@ export default function FacultyDashboard() {
   const [level, setLevel] = useState("");
   const [subject, setSubject] = useState("");
   const [phone, setPhone] = useState("");
+  const [students, setStudents] = useState("");
+  const [website, setWebsite] = useState("");
+  const [experience, setExperience] = useState("");
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
 
@@ -57,6 +62,9 @@ export default function FacultyDashboard() {
     setLevel(facultyData.level || "");
     setSubject(facultyData.subject || "");
     setPhone(facultyData.phone || "");
+    setStudents(facultyData.students || "");
+    setWebsite(facultyData.website || "");
+    setExperience(facultyData.experience || "");
     setProfilePictureUrl(facultyData.profile_picture || "");
     setProfilePictureFile(null);
     setEditingId(facultyData.id);
@@ -73,6 +81,9 @@ export default function FacultyDashboard() {
       level: level || null,
       subject: subject || null,
       phone: phone || null,
+      students: students || null,
+      website: website || null,
+      experience: experience || null,
     };
 
     if (profilePictureFile) {
@@ -116,6 +127,7 @@ export default function FacultyDashboard() {
     } else {
       toast({ title: `Faculty ${editingId ? 'updated' : 'added'}!` });
       setName(""); setEmail(""); setLevel(""); setSubject(""); setPhone("");
+      setStudents(""); setWebsite(""); setExperience("");
       setEditingId(null);
       setShowAdd(false);
       fetchData();
@@ -145,17 +157,29 @@ export default function FacultyDashboard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={fetchData}><RefreshCw className="h-4 w-4" /></Button>
-          <Button onClick={() => { setEditingId(null); setName(""); setEmail(""); setLevel(""); setSubject(""); setPhone(""); setProfilePictureFile(null); setProfilePictureUrl(""); setShowAdd(true); }} className="gap-2">
+          <Button onClick={() => { setEditingId(null); setName(""); setEmail(""); setLevel(""); setSubject(""); setPhone(""); setStudents(""); setWebsite(""); setExperience(""); setProfilePictureFile(null); setProfilePictureUrl(""); setShowAdd(true); }} className="gap-2">
             <Plus className="h-4 w-4" /> Add Faculty
           </Button>
         </div>
       </div>
+
+      <TableFilters 
+        columns={[
+          { key: "name", label: "Name" },
+          { key: "subject", label: "Subject" },
+          { key: "level", label: "Level" },
+          { key: "email", label: "Email" }
+        ]} 
+        onFilterChange={setFilters}
+        placeholder="Search faculty..."
+      />
 
       <Dialog open={showAdd} onOpenChange={(open) => { 
         setShowAdd(open); 
         if (!open) {
           setEditingId(null);
           setName(""); setEmail(""); setLevel(""); setSubject(""); setPhone("");
+          setStudents(""); setWebsite(""); setExperience("");
           setProfilePictureFile(null);
           setProfilePictureUrl("");
         }
@@ -218,6 +242,18 @@ export default function FacultyDashboard() {
               <label className="text-sm font-medium">Phone</label>
               <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone (optional)" />
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Total Students</label>
+              <Input value={students} onChange={e => setStudents(e.target.value)} placeholder="e.g. 5000+" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Website</label>
+              <Input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://..." />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Experience (Years)</label>
+              <Input value={experience} onChange={e => setExperience(e.target.value)} placeholder="e.g. 10" />
+            </div>
             <div className="col-span-full pt-4">
               <Button type="submit" className="w-full" disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingId ? "Update Faculty" : "Save Faculty")}
@@ -242,12 +278,28 @@ export default function FacultyDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {faculty.length === 0 && (
+              {faculty.filter(f => {
+                if (!filters.value) return true;
+                const field = f[filters.column];
+                if (filters.column === "subject") {
+                   const subjectName = formatSubjectName(f.subject as any);
+                   return subjectName.toLowerCase().includes(filters.value.toLowerCase());
+                }
+                return field?.toString().toLowerCase().includes(filters.value.toLowerCase());
+              }).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No faculty found.</TableCell>
+                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">No faculty found matching your filter.</TableCell>
                 </TableRow>
               )}
-              {faculty.map(f => (
+              {faculty.filter(f => {
+                if (!filters.value) return true;
+                const field = f[filters.column];
+                if (filters.column === "subject") {
+                   const subjectName = formatSubjectName(f.subject as any);
+                   return subjectName.toLowerCase().includes(filters.value.toLowerCase());
+                }
+                return field?.toString().toLowerCase().includes(filters.value.toLowerCase());
+              }).map(f => (
                 <TableRow key={f.id}>
                   <TableCell className="font-medium">{f.name}</TableCell>
                   <TableCell className="capitalize">{f.level || '-'}</TableCell>

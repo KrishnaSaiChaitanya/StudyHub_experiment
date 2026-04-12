@@ -59,7 +59,7 @@ export default function CommunitySubmissionsAdmin() {
         pdf_url: sub.pdf_url,
         is_community: true,
         uploader_id: sub.user_id,
-        pages: 0, // Admin might need to update this later or we can try to get it if possible
+        pages: sub.pages || 0,
       });
 
       if (insertError) throw insertError;

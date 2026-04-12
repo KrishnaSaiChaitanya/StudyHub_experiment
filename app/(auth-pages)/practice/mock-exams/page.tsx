@@ -20,6 +20,7 @@ interface Test {
   questions_count: number;
   duration?: number;
   level?: string;
+  description?: string;
   updated_at: string;
   attempts?: {
     score: number;
@@ -214,6 +215,13 @@ export default function MockExamsPage() {
         <span className="font-medium">{test.questions_count} Qs</span>
       </div>
     </div>
+    
+    {/* Description */}
+    {test.description && (
+      <p className="mb-6 text-sm text-muted-foreground/80 line-clamp-2 leading-relaxed italic">
+        {test.description}
+      </p>
+    )}
 
     {/* Spacer to push content up and button down */}
     <div className="flex-1" />

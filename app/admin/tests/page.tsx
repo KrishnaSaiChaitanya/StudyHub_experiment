@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { SUBJECT_MAPPING, formatSubjectName } from "@/utils/subjects";
+import { TableFilters } from "@/components/admin/TableFilters";
 
 export default function TestsDashboard() {
   const supabase = createClient();
@@ -21,6 +22,7 @@ export default function TestsDashboard() {
   const [showAddTest, setShowAddTest] = useState(false);
   const [savingTest, setSavingTest] = useState(false);
   const [editingTestId, setEditingTestId] = useState<string | null>(null);
+  const [testFilters, setTestFilters] = useState({ column: "name", value: "" });
 
   // Selected test for managing questions
   const [selectedTest, setSelectedTest] = useState<any>(null);
@@ -29,12 +31,14 @@ export default function TestsDashboard() {
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [savingQuestion, setSavingQuestion] = useState(false);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [questionFilters, setQuestionFilters] = useState({ column: "question_text", value: "" });
 
   // Form State - Test
   const [testName, setTestName] = useState("");
   const [testCategory, setTestCategory] = useState("");
   const [testDuration, setTestDuration] = useState<string>("");
   const [testLevel, setTestLevel] = useState<string>("standard");
+  const [testDescription, setTestDescription] = useState("");
 
   // Form State - Question
   const [questionText, setQuestionText] = useState("");
@@ -79,6 +83,7 @@ export default function TestsDashboard() {
     setTestCategory(test.category);
     setTestDuration(test.duration?.toString() || "");
     setTestLevel(test.level || "standard");
+    setTestDescription(test.description || "");
     setEditingTestId(test.id);
     setShowAddTest(true);
   };
@@ -92,6 +97,7 @@ export default function TestsDashboard() {
       category: testCategory,
       duration: testDuration ? parseInt(testDuration) : null,
       level: testLevel,
+      description: testDescription,
     };
 
     let error;
@@ -107,7 +113,7 @@ export default function TestsDashboard() {
       toast({ title: `Error ${editingTestId ? 'updating' : 'adding'} test`, description: error.message, variant: "destructive" });
     } else {
       toast({ title: `Test ${editingTestId ? 'updated' : 'added'}!` });
-      setTestName(""); setTestCategory(""); setTestDuration(""); setTestLevel("standard");
+      setTestName(""); setTestCategory(""); setTestDuration(""); setTestLevel("standard"); setTestDescription("");
       setEditingTestId(null);
       setShowAddTest(false);
       fetchTests();
@@ -208,6 +214,16 @@ export default function TestsDashboard() {
           </div>
         </div>
 
+        <TableFilters 
+          columns={[
+            { key: "question_text", label: "Question" },
+            { key: "option_a", label: "Option A" },
+            { key: "notes", label: "Notes" }
+          ]} 
+          onFilterChange={setQuestionFilters}
+          placeholder="Filter questions..."
+        />
+
         {showAddQuestion && (
           <Card className="border-border">
             <CardHeader><CardTitle>{editingQuestionId ? "Edit Question" : "Add New Question"}</CardTitle></CardHeader>
@@ -275,16 +291,25 @@ export default function TestsDashboard() {
                   <TableHead>Question</TableHead>
                   <TableHead>Options</TableHead>
                   <TableHead>Answer</TableHead>
+                  <TableHead>Notes</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {questions.length === 0 && (
+                {questions.filter(q => {
+                  if (!questionFilters.value) return true;
+                  const field = q[questionFilters.column];
+                  return field?.toString().toLowerCase().includes(questionFilters.value.toLowerCase());
+                }).length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">No questions added yet.</TableCell>
+                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No questions found matching your filter.</TableCell>
                   </TableRow>
                 )}
-                {questions.map((q, i) => (
+                {questions.filter(q => {
+                  if (!questionFilters.value) return true;
+                  const field = q[questionFilters.column];
+                  return field?.toString().toLowerCase().includes(questionFilters.value.toLowerCase());
+                }).map((q, i) => (
                   <TableRow key={q.id}>
                     <TableCell className="font-medium max-w-sm">
                         <span className="text-muted-foreground mr-2">{i+1}.</span>
@@ -299,6 +324,9 @@ export default function TestsDashboard() {
                       </div>
                     </TableCell>
                     <TableCell className="font-bold text-primary">{q.correct_answer}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[200px]">
+                      <div className="line-clamp-3 whitespace-pre-wrap">{q.notes || "-"}</div>
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end">
                         <Button variant="ghost" size="icon" onClick={() => handleEditQuestion(q)} className="text-muted-foreground hover:text-primary">
@@ -333,6 +361,16 @@ export default function TestsDashboard() {
           </Button>
         </div>
       </div>
+
+      <TableFilters 
+        columns={[
+          { key: "name", label: "Test Name" },
+          { key: "category", label: "Subject" },
+          { key: "level", label: "Level" }
+        ]} 
+        onFilterChange={setTestFilters}
+        placeholder="Filter tests..."
+      />
 
       {showAddTest && (
         <Card className="border-border">
@@ -370,6 +408,16 @@ export default function TestsDashboard() {
                   </SelectContent>
                 </Select>
               </div>
+              
+              <div className="col-span-full space-y-2">
+                <label className="text-sm font-medium">Description (Short summary for students)</label>
+                <Textarea 
+                  value={testDescription} 
+                  onChange={e => setTestDescription(e.target.value)} 
+                  placeholder="Tell students what this test covers..." 
+                  rows={3}
+                />
+              </div>
 
               <div className="col-span-full pt-2">
                 <Button type="submit" disabled={savingTest}>
@@ -397,12 +445,29 @@ export default function TestsDashboard() {
           </TableRow>
             </TableHeader>
             <TableBody>
-              {tests.length === 0 && (
+              {tests.filter(t => {
+                if (!testFilters.value) return true;
+                const field = t[testFilters.column];
+                //Special handling for subject category name
+                if (testFilters.column === "category") {
+                   const subjectName = formatSubjectName(t.category as any);
+                   return subjectName.toLowerCase().includes(testFilters.value.toLowerCase());
+                }
+                return field?.toString().toLowerCase().includes(testFilters.value.toLowerCase());
+              }).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">No tests found.</TableCell>
+                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">No tests found matching your filter.</TableCell>
                 </TableRow>
               )}
-              {tests.map(t => (
+              {tests.filter(t => {
+                if (!testFilters.value) return true;
+                const field = t[testFilters.column];
+                if (testFilters.column === "category") {
+                   const subjectName = formatSubjectName(t.category as any);
+                   return subjectName.toLowerCase().includes(testFilters.value.toLowerCase());
+                }
+                return field?.toString().toLowerCase().includes(testFilters.value.toLowerCase());
+              }).map(t => (
                 <TableRow key={t.id}>
                   <TableCell className="font-medium">{t.name}</TableCell>
                   <TableCell>{formatSubjectName(t.category as any)}</TableCell>

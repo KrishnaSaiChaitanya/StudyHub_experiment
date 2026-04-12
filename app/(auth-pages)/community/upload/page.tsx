@@ -21,6 +21,7 @@ export default function CommunityUploadPage() {
   const [submitted, setSubmitted] = useState(false);
   const [facultyList, setFacultyList] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
+  const [pages, setPages] = useState<number | "">("");
 
   // Form State
   const [title, setTitle] = useState("");
@@ -41,6 +42,7 @@ export default function CommunityUploadPage() {
     };
     fetchFaculty();
   }, [supabase]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +67,7 @@ export default function CommunityUploadPage() {
         faculty_id: facultyId || null,
         planner_date: plannerDate,
         pdf_url: url,
+        pages: pages,
         status: 'pending'
       });
       if (error) throw error;
@@ -91,6 +94,17 @@ export default function CommunityUploadPage() {
             <CardTitle className="text-3xl font-bold mb-2">Well Done!</CardTitle>
             <CardDescription className="text-base mb-8">
               Your contribution makes StudyHub better for everyone. Our admins are reviewing it now.
+              <div className="mt-4 p-4 bg-muted/50 rounded-xl border border-border/50 flex items-start gap-3 text-left">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-xl">📧</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Stay tuned!</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Further details and approval status will be communicated to you via your registered email address.
+                  </p>
+                </div>
+              </div>
             </CardDescription>
             <div className="flex flex-col gap-3">
               <Button asChild size="lg" className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
@@ -177,7 +191,7 @@ export default function CommunityUploadPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="space-y-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Title</label>
                     <Input 
                       required 
@@ -204,40 +218,31 @@ export default function CommunityUploadPage() {
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Faculty (Optional)</label>
-                  
-<Select 
-  value={facultyId} 
-  onValueChange={(value) => {
-    // If the value is 'none', clear it.
-    // If you click the same value, this might not trigger depending on the library version.
-    setFacultyId(value === "none" ? "" : value);
-  }}
->
-  <SelectTrigger className="h-12 border-border focus:ring-accent/20 bg-muted/20">
-    <SelectValue placeholder="No Faculty Selected" />
-  </SelectTrigger>
-  <SelectContent>
-    {/* Explicit Clear Option */}
-    {facultyId && (
-       <Button 
-         variant="ghost" 
-         className="w-full justify-start px-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
-         onClick={(e) => {
-           e.stopPropagation();
-           setFacultyId("");
-         }}
-       >
-         Clear Selection
-       </Button>
-    )}
-    
-    {facultyList.map(f => (
-      <SelectItem key={f.id} value={f.id}>
-        {f.name}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
+                    <Select 
+                      value={facultyId} 
+                      onValueChange={(value) => setFacultyId(value === "none" ? "" : value)}
+                    >
+                      <SelectTrigger className="h-12 border-border focus:ring-accent/20 bg-muted/20">
+                        <SelectValue placeholder="No Faculty Selected" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {facultyId && (
+                          <Button 
+                            variant="ghost" 
+                            className="w-full justify-start px-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFacultyId("");
+                            }}
+                          >
+                            Clear Selection
+                          </Button>
+                        )}
+                        {facultyList.map(f => (
+                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
@@ -245,6 +250,19 @@ export default function CommunityUploadPage() {
                     <Input 
                       required type="date" value={plannerDate} 
                       onChange={e => setPlannerDate(e.target.value)} 
+                      className="h-12 border-border focus:ring-accent/20 bg-muted/20"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total Pages</label>
+                    <Input 
+                      required 
+                      type="number" 
+                      min="1"
+                      value={pages} 
+                      onChange={e => setPages(e.target.value ? parseInt(e.target.value) : "")} 
+                      placeholder="e.g. 15" 
                       className="h-12 border-border focus:ring-accent/20 bg-muted/20"
                     />
                   </div>

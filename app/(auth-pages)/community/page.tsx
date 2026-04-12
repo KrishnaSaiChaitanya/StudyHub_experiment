@@ -23,6 +23,8 @@ const sections = [
 ];
 
 import { ProFeatureLock } from "@/components/ProFeatureLock";
+import Footer from "@/components/Footer";
+
 
 const Community = () => (
   <div className="min-h-[calc(100vh-4rem)] bg-background">
@@ -88,6 +90,7 @@ const Community = () => (
         </div>
       </section>
     </main>
+    <Footer />
   </div>
 );
 

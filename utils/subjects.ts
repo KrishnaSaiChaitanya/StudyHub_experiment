@@ -78,7 +78,7 @@ export const SUBJECT_COLOR_MAP: Record<SubjectCategory, string> = {
   advanced_financial_management: "hsl(45 93% 47%)",          // Gold
   advanced_auditing_assurance_and_professional_ethics: "hsl(10 80% 50%)", // Vermilion
   direct_tax_laws: "hsl(200 70% 40%)",                       // Steel Blue
-  indirect_tax_laws: "hsl(43 100% 50%)",                     // Yellow
+  indirect_tax_laws: "hsl(83 100% 50%)",                     // Yellow
   integrated_business_solutions: "hsl(291 64% 42%)",         // Deep Purple
 };
 

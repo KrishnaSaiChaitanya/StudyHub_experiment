@@ -439,10 +439,11 @@ console.log(todaySessions);
                     <button
                       key={s.value}
                       onClick={() => { setActiveSubject(s.value); }}
+                      disabled={running}
                       className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                         activeSubject === s.value ? "text-white shadow-sm" : "bg-secondary text-muted-foreground"
-                      }`}
-                      style={activeSubject === s.value ? { backgroundColor: s.color } : {}}
+                      } ${running ? "opacity-50 grayscale cursor-not-allowed" : ""}`}
+                      style={activeSubject === s.value ? { backgroundColor: running ? "#94a3b8" : s.color } : {}}
                     >
                       {s.label}
                     </button>

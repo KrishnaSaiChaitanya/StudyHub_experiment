@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { SUBJECT_MAPPING, formatSubjectName } from "@/utils/subjects";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { TableFilters } from "@/components/admin/TableFilters";
 
 export default function PlannersDashboard() {
   const supabase = createClient();
@@ -22,6 +23,7 @@ export default function PlannersDashboard() {
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [filters, setFilters] = useState({ column: "title", value: "" });
 
   // Form State
   const [title, setTitle] = useState("");
@@ -120,6 +122,15 @@ export default function PlannersDashboard() {
         </div>
       </div>
 
+      <TableFilters 
+        columns={[
+          { key: "title", label: "Title" },
+          { key: "category", label: "Subject" }
+        ]} 
+        onFilterChange={setFilters}
+        placeholder="Filter planners..."
+      />
+
       <Dialog open={showAdd} onOpenChange={(open) => {
         setShowAdd(open);
         if (!open) {
@@ -196,12 +207,28 @@ export default function PlannersDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {planners.length === 0 && (
+              {planners.filter(p => {
+                if (!filters.value) return true;
+                const field = p[filters.column];
+                if (filters.column === "category") {
+                   const subjectName = formatSubjectName(p.category as any);
+                   return subjectName.toLowerCase().includes(filters.value.toLowerCase());
+                }
+                return field?.toString().toLowerCase().includes(filters.value.toLowerCase());
+              }).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">No planners found.</TableCell>
+                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">No planners found matching your filter.</TableCell>
                 </TableRow>
               )}
-              {planners.map(p => (
+              {planners.filter(p => {
+                if (!filters.value) return true;
+                const field = p[filters.column];
+                if (filters.column === "category") {
+                   const subjectName = formatSubjectName(p.category as any);
+                   return subjectName.toLowerCase().includes(filters.value.toLowerCase());
+                }
+                return field?.toString().toLowerCase().includes(filters.value.toLowerCase());
+              }).map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.title}</TableCell>
                   <TableCell>{formatSubjectName(p.category as any)}</TableCell>

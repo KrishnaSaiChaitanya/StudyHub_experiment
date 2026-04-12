@@ -12,11 +12,11 @@ interface FacultyData {
   subject: string;
   rating: number;
   students: string;
+  website?: string;
+  experience?: string;
   level: string;
   profile_picture?: string | null;
   phone?: string;
-  location?: string;
-  website?: string;
   email?: string;
 }
 
@@ -26,6 +26,7 @@ interface FacultyProfileProps {
 }
 
 const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
+  console.log(faculty);
   const [planners, setPlanners] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
@@ -96,12 +97,12 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
                 {/* <span className="flex items-center gap-1"> */}
                   {/* <Star className="h-3.5 w-3.5 fill-accent text-accent" />{faculty.rating} Rating</span> */}
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{faculty.students} Students</span>
-                <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />10+ Years Exp</span>
+                <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{faculty.experience} Years Exp</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-accent" />{faculty.email ?? "xxxxx@gmail.com"}</span>
                 <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-accent" />( {faculty.phone ?? "+91 XXXXX XXXXX"} ) </span>
-                <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-accent" />{faculty.location ?? "xxxxx"}</span>
+              
                 <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-accent" />{faculty.website ?? "xxxxx"}</span>
               </div>
             </div>
@@ -175,7 +176,7 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
                       <h3 className="truncate text-sm font-medium text-card-foreground">{video.name}</h3>
                       <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" />
-                           {video.duration_minutes ? `${video.duration_minutes}m` : 'Unknown'}
+                           {video.duration_minutes || 'Unknown'}
                         </span>
                       </div>
                     </div>

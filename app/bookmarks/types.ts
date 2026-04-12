@@ -15,5 +15,6 @@ export interface BookmarkItem {
   savedAt: string;
   url?: string;
   targetId?: string;
+  questionId?: string;
   subject?: string;
 }

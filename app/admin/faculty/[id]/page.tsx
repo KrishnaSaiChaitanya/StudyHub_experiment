@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Plus, Trash2, Loader2, RefreshCw, ChevronLeft, Pencil, Video, BookOpen, FileText } from "lucide-react";
+import { TableFilters } from "@/components/admin/TableFilters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -31,6 +32,7 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
+  const [videoFilters, setVideoFilters] = useState({ column: "name", value: "" });
 
   // Courses state
   const [courses, setCourses] = useState<any[]>([]);
@@ -43,6 +45,7 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
   const [coursePrice, setCoursePrice] = useState("");
   const [courseLink, setCourseLink] = useState("");
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [courseFilters, setCourseFilters] = useState({ column: "name", value: "" });
 
   // Planners state
   const [planners, setPlanners] = useState<any[]>([]);
@@ -96,7 +99,7 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
       faculty_id: id,
       name: videoName,
       url: videoUrl,
-      duration_minutes: videoDuration ? parseInt(videoDuration) : null,
+      duration_minutes: videoDuration || null,
     };
 
     if (thumbnailFile) {
@@ -294,6 +297,16 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
               <Plus className="h-4 w-4" /> {showAddVideo ? "Cancel" : "Add Video"}
             </Button>
           </div>
+
+          <TableFilters 
+            columns={[
+              { key: "name", label: "Video Name" },
+              { key: "url", label: "URL" },
+              { key: "duration_minutes", label: "Duration" }
+            ]} 
+            onFilterChange={setVideoFilters}
+            placeholder="Filter videos..."
+          />
           
           {showAddVideo && (
             <Card>
@@ -309,8 +322,8 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
                     <Input required type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://..." />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Duration (minutes)</label>
-                    <Input type="number" required value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder="E.g. 45" />
+                    <label className="text-sm font-medium">Duration (e.g. 45 mins or 2.5 hr)</label>
+                    <Input required value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder="E.g. 45 mins" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Thumbnail Image</label>
@@ -352,14 +365,22 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {videos.length === 0 && (
-                  <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">No videos available.</TableCell></TableRow>
+                {videos.filter(v => {
+                  if (!videoFilters.value) return true;
+                  const field = v[videoFilters.column];
+                  return field?.toString().toLowerCase().includes(videoFilters.value.toLowerCase());
+                }).length === 0 && (
+                  <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">No videos found matching filter.</TableCell></TableRow>
                 )}
-                {videos.map(v => (
+                {videos.filter(v => {
+                  if (!videoFilters.value) return true;
+                  const field = v[videoFilters.column];
+                  return field?.toString().toLowerCase().includes(videoFilters.value.toLowerCase());
+                }).map(v => (
                   <TableRow key={v.id}>
                     <TableCell className="font-medium">{v.name}</TableCell>
                     <TableCell><a href={v.url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate max-w-[200px] block">{v.url}</a></TableCell>
-                    <TableCell>{v.duration_minutes} mins</TableCell>
+                    <TableCell>{v.duration_minutes}</TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end">
                         <Button variant="ghost" size="icon" onClick={() => handleEditVideo(v)}><Pencil className="h-4 w-4" /></Button>
@@ -381,6 +402,16 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
               <Plus className="h-4 w-4" /> {showAddCourse ? "Cancel" : "Add Course"}
             </Button>
           </div>
+
+          <TableFilters 
+            columns={[
+              { key: "name", label: "Course Name" },
+              { key: "batchtype", label: "Batch Type" },
+              { key: "period", label: "Period" }
+            ]} 
+            onFilterChange={setCourseFilters}
+            placeholder="Filter courses..."
+          />
           
           {showAddCourse && (
             <Card>
@@ -443,7 +474,11 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
                 {courses.length === 0 && (
                   <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">No courses available.</TableCell></TableRow>
                 )}
-                {courses.map(c => (
+                {courses.filter(c => {
+                  if (!courseFilters.value) return true;
+                  const field = c[courseFilters.column];
+                  return field?.toString().toLowerCase().includes(courseFilters.value.toLowerCase());
+                }).map(c => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell>{c.hours_count}h</TableCell>

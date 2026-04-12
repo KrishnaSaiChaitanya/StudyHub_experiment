@@ -6,6 +6,7 @@ import { Star, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import Footer from "@/components/Footer";
+import { useStudent } from "@/components/StudentTypeProvider";
 
 export interface FacultyDisplayData {
   id: string;
@@ -32,13 +33,17 @@ const formatLevel = (level: string | null) => {
 
 const Faculty = () => {
   const [selectedFaculty, setSelectedFaculty] = useState<FacultyDisplayData | null>(null);
+  const { studentLevel, subjects, loading: studentLoading } = useStudent();
   const [facultyList, setFacultyList] = useState<FacultyDisplayData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchFaculty = async () => {
       const supabase = createClient();
-      const { data, error } = await supabase.from("faculty").select("*");
+      const { data, error } = await supabase
+        .from("faculty")
+        .select("*")
+        .in("level", studentLevel ? [studentLevel] : ["foundation", "intermediate", "final"])
 
       if (data && !error) {
         const formattedData: FacultyDisplayData[] = data.map((f) => ({
@@ -46,17 +51,24 @@ const Faculty = () => {
           name: f.name,
           subject: formatNameToSubject(f.subject),
           rating: Number(f.rating) || 4.5,
-          students: f.students_count ? `${f.students_count >= 1000 ? (f.students_count/1000).toFixed(1) + 'K' : f.students_count}+` : "New",
+          students: f.students,
           level: formatLevel(f.level),
           profile_picture: f.profile_picture || null,
+          email: f.email,
+          phone: f.phone,
+          website: f.website,
+          experience: f.experience,
+          location: f.location,
         }));
         setFacultyList(formattedData);
       }
       setLoading(false);
     };
 
-    fetchFaculty();
-  }, []);
+    if (!studentLoading) {
+      fetchFaculty();
+    }
+  }, [studentLevel, studentLoading]);
 
   return (
     <>

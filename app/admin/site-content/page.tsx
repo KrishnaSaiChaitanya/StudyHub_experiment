@@ -68,8 +68,17 @@ export default function SiteContentAdmin() {
   };
 
   const addArrayItem = (pageId: string, field: string, template: any) => {
-    const newArray = [...(contents[pageId][field] || []), template];
-    updateContent(pageId, field, newArray);
+    setContents((prev: any) => {
+      const pageContent = prev[pageId] || {};
+      const fieldArray = pageContent[field] || [];
+      return {
+        ...prev,
+        [pageId]: {
+          ...pageContent,
+          [field]: [...fieldArray, template]
+        }
+      };
+    });
   };
 
   const removeArrayItem = (pageId: string, field: string, index: number) => {

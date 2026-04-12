@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SUBJECT_ABBREVIATIONS, formatSubjectName } from "@/utils/subjects";
 import { SubjectCategory } from "@/utils/supabase/types";
+import { TableFilters } from "@/components/admin/TableFilters";
 
 export default function EventsDashboard() {
   const supabase = createClient();
@@ -22,6 +23,7 @@ export default function EventsDashboard() {
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [filters, setFilters] = useState({ column: "title", value: "" });
 
   // Form State
   const [title, setTitle] = useState("");
@@ -118,6 +120,16 @@ export default function EventsDashboard() {
         </div>
       </div>
 
+      <TableFilters 
+        columns={[
+          { key: "title", label: "Title" },
+          { key: "category", label: "Category" },
+          { key: "subject", label: "Subject" }
+        ]} 
+        onFilterChange={setFilters}
+        placeholder="Search events..."
+      />
+
       <Dialog open={showAdd} onOpenChange={(open) => {
         setShowAdd(open);
         if (!open) {
@@ -135,8 +147,8 @@ export default function EventsDashboard() {
               <Input required value={title} onChange={e => setTitle(e.target.value)} placeholder="Event Title" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Event Time</label>
-              <Input required value={eventTime} onChange={e => setEventTime(e.target.value)} placeholder="e.g., 3:00 PM" />
+              <label className="text-sm font-medium">Event Time (Optional)</label>
+              <Input value={eventTime} onChange={e => setEventTime(e.target.value)} placeholder="e.g., 3:00 PM" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Date (Day)</label>
@@ -204,12 +216,28 @@ export default function EventsDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {events.length === 0 && (
+              {events.filter(e => {
+                if (!filters.value) return true;
+                const field = e[filters.column];
+                if (filters.column === "subject") {
+                   const subjectName = formatSubjectName(e.subject as any);
+                   return subjectName.toLowerCase().includes(filters.value.toLowerCase());
+                }
+                return field?.toString().toLowerCase().includes(filters.value.toLowerCase());
+              }).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No events found.</TableCell>
+                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">No events found matching your filter.</TableCell>
                 </TableRow>
               )}
-              {events.map(e => (
+              {events.filter(e => {
+                if (!filters.value) return true;
+                const field = e[filters.column];
+                if (filters.column === "subject") {
+                   const subjectName = formatSubjectName(e.subject as any);
+                   return subjectName.toLowerCase().includes(filters.value.toLowerCase());
+                }
+                return field?.toString().toLowerCase().includes(filters.value.toLowerCase());
+              }).map(e => (
                 <TableRow key={e.id}>
                   <TableCell className="font-medium">{e.title}</TableCell>
                   <TableCell>{e.event_date}/{e.event_month}/{e.event_year}</TableCell>

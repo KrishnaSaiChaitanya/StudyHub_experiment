@@ -6,11 +6,11 @@ import { BookOpen, Timer, CalendarDays, Target, BarChart3, ClipboardList } from 
 import Link from "next/link";
 
 const tools = [
-  { icon: BookOpen, title: "Study Resources", description: "Create personalized study plans aligned with your exam schedule.", badge: "Popular", path: "/study/planner" },
-  { icon: Timer, title: "Focus Timer", description: "Pomodoro-based timer with session tracking and insights.", path: "/study/progress" },
-  { icon: Target, title: "Task Manager", description: "Break down syllabus into actionable tasks and track completion.", path: "/study/progress" },
+  { icon: BookOpen, title: "Study Resources", description: "Create personalized study plans aligned with your exam schedule.", path: "/study/planner" },
+  // { icon: Timer, title: "Focus Timer", description: "Pomodoro-based timer with session tracking and insights.", path: "/study/progress" },
+  // { icon: Target, title: "Task Manager", description: "Break down syllabus into actionable tasks and track completion.", path: "/study/progress" },
   { icon: BarChart3, title: "Progress Dashboard", description: "Visualize preparation across subjects with analytics.", path: "/study/progress" },
-  { icon: CalendarDays, title: "Exam Calendar", description: "ICAI exam dates, registration deadlines, and reminders.", badge: "New", path: "/study/events" },
+  { icon: CalendarDays, title: "Exam Calendar", description: "ICAI exam dates, registration deadlines, and reminders.", path: "/study/events" },
   { icon: ClipboardList, title: "Notes & Bookmarks", description: "Save notes, bookmark resources, and organize materials.", path: "/bookmarks" },
 ];
 
@@ -42,9 +42,9 @@ const Study = () => {
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
                       <tool.icon className="h-5 w-5 text-accent" />
                     </div>
-                    {tool.badge && (
+                    {/* {tool.badge && (
                       <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-medium text-accent">{tool.badge}</span>
-                    )}
+                    )} */}
                   </div>
                   <h3 className="mt-4 text-sm font-semibold text-card-foreground">{tool.title}</h3>
                   <p className="mt-1.5 text-xs text-muted-foreground">{tool.description}</p>

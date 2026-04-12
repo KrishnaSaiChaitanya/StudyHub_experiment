@@ -133,6 +133,7 @@ const BookmarksClient = ({ userId }: BookmarksClientProps) => {
                 source: q.tests ? `${q.tests.name} (${formatSubjectName(q.tests.category as any)})` : "Mock Test",
                 savedAt: b.created_at,
                 targetId: q.test_id,
+                questionId: q.id,
                 subject: q.tests?.category
               };
             }
@@ -275,8 +276,8 @@ const BookmarksClient = ({ userId }: BookmarksClientProps) => {
   };
 
   const handleViewBookmark = (bm: BookmarkItem) => {
-    if (bm.type === "question" && bm.targetId) {
-      router.push(`/practice/mock-exams/${bm.targetId}`);
+    if (bm.type === "question" && bm.questionId) {
+      router.push(`/bookmarks/question/${bm.questionId}`);
     } else if (bm.url) {
       window.open(bm.url, "_blank");
     }

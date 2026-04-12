@@ -410,8 +410,8 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
                                 <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${ans.is_correct ? "bg-accent/20 text-accent" : "bg-destructive/20 text-destructive"}`}>
                                   {i + 1}
                                 </span>
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-foreground leading-relaxed">{q.question_text}</p>
+                                <div className="flex-1 text-sm font-medium text-foreground leading-relaxed whitespace-pre-wrap">
+                                  {q.question_text}
                                 </div>
                                 <Button
                                   variant="ghost"
@@ -452,7 +452,7 @@ const PerformanceHistory = ({ onBack }: PerformanceHistoryProps) => {
                                   <span className="text-muted-foreground font-semibold uppercase tracking-tighter">Correct: <span className="text-accent">{q.correct_answer}</span></span>
                                 </div>
                                 {q.notes && (
-                                  <div className="mt-2 pt-2 border-t border-border/50 text-muted-foreground italic leading-relaxed">
+                                  <div className="mt-2 pt-2 border-t border-border/50 text-muted-foreground italic leading-relaxed whitespace-pre-wrap">
                                     <span className="font-bold text-foreground not-italic mr-1">Explanation:</span> {q.notes}
                                   </div>
                                 )}
