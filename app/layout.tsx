@@ -1,11 +1,8 @@
 import { Poppins } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/sections/footer";
 import { Providers } from "@/components/providers";
 import QueryProvider from "@/components/QueryProvider";
-import { StudyTimerPill } from "@/components/StudyTimerPill";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -37,6 +34,8 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
+import { ConditionalLayout } from "@/components/ConditionalLayout";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -45,22 +44,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${poppins.variable} font-sans`} suppressHydrationWarning>
       <body className="font-sans">
-       
           <main className="flex flex-col items-center">
             <QueryProvider>
               <Providers>
-                <div className="w-full flex flex-col min-h-screen">
-                  <Navbar />
-                  <div className="flex-1 w-full flex flex-col">
-                    {children}
-                  </div>
-                </div>
-                 <StudyTimerPill />
-                
+                <ConditionalLayout>
+                  {children}
+                </ConditionalLayout>
               </Providers>
             </QueryProvider>
           </main>
-        
       </body>
     </html>
   );

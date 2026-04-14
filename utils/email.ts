@@ -174,3 +174,17 @@ export const getSubmissionStatusEmail = (userName: string, title: string, status
     </div>
   `);
 };
+
+export const getWaitlistNotificationEmail = (email: string) => {
+  return getEmailWrapper(`
+    <h2 style="font-size: 22px; font-weight: 700; margin-top: 0;">New Waitlist Joiner! 🚀</h2>
+    <p>A new user has just joined the waitlist for CAStudyHub.</p>
+    
+    <div style="margin: 32px 0; padding: 24px; background-color: #F8FAFC; border-radius: 12px; border: 1px solid ${BORDER_COLOR};">
+       <p style="margin: 0; font-size: 12px; font-weight: 700; color: ${TEXT_MUTED}; text-transform: uppercase;">User Email</p>
+       <p style="margin: 8px 0 0; font-size: 18px; font-weight: 600; color: ${TEXT_DARK};">${email}</p>
+    </div>
+    
+    <p style="margin-bottom: 0;">You might want to reach out to them or keep them in your mailing list for the launch!</p>
+  `);
+};

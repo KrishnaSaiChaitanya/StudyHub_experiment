@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { syncUserActivity } from "@/utils/supabase/profile";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { sendEmail, getVerificationEmail, getPasswordResetEmail } from "@/utils/email";
+import { sendEmail, getVerificationEmail, getPasswordResetEmail, getWaitlistNotificationEmail } from "@/utils/email";
 
 const siteURL = process.env.NEXT_PUBLIC_SITE_URL;
 
@@ -226,4 +226,29 @@ export const signOutAction = async () => {
   const supabase = await createClient();
   await supabase.auth.signOut();
   return redirect("/sign-in");
+};
+
+export const joinWaitlistAction = async (email: string) => {
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { success: false, error: "Invalid email address" };
+  }
+
+  const adminEmail = process.env.SMTP_FROM_EMAIL;
+  if (!adminEmail) {
+    console.error("SMTP_FROM_EMAIL is not defined in environment variables");
+    return { success: false, error: "Server configuration error" };
+  }
+
+  const emailResult = await sendEmail({
+    to: adminEmail,
+    subject: "New Waitlist Joiner - CAStudyHub",
+    html: getWaitlistNotificationEmail(email),
+  });
+
+  if (!emailResult.success) {
+    console.error("Nodemailer error joining waitlist:", emailResult.error);
+    return { success: false, error: "Failed to send notification" };
+  }
+
+  return { success: true };
 };

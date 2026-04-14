@@ -1,7 +1,14 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
+  const isLive = process.env.IS_LIVE !== "false";
+  const { pathname } = request.nextUrl;
+
+  if (!isLive && pathname !== "/comming-soon") {
+    return NextResponse.redirect(new URL("/comming-soon", request.url));
+  }
+
   return await updateSession(request);
 }
 
