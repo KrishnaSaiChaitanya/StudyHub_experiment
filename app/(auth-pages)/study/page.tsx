@@ -2,16 +2,16 @@
 
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { BookOpen, Timer, CalendarDays, Target, BarChart3, ClipboardList } from "lucide-react";
+import { BookOpen, Timer, CalendarDays, Target, BarChart3, ClipboardList, Bot, Bell } from "lucide-react";
 import Link from "next/link";
 
 const tools = [
-  { icon: BookOpen, title: "Study Resources", description: "Create personalized study plans aligned with your exam schedule.", path: "/study/planner" },
-  // { icon: Timer, title: "Focus Timer", description: "Pomodoro-based timer with session tracking and insights.", path: "/study/progress" },
-  // { icon: Target, title: "Task Manager", description: "Break down syllabus into actionable tasks and track completion.", path: "/study/progress" },
-  { icon: BarChart3, title: "Progress Dashboard", description: "Visualize preparation across subjects with analytics.", path: "/study/progress" },
+  { icon: BookOpen, title: "Study Resources", description: "Study planners, key questions, and mnemonics from faculty & community", path: "/study/planner" },
+  { icon: BarChart3, title: "Progress dashboard", description: "Track study time, maintain streaks, manage tasks, and view detailed analytics.", path: "/study/progress" },
   { icon: CalendarDays, title: "Exam Calendar", description: "ICAI exam dates, registration deadlines, and reminders.", path: "/study/events" },
   { icon: ClipboardList, title: "Notes & Bookmarks", description: "Save notes, bookmark resources, and organize materials.", path: "/bookmarks" },
+  { icon: Bot, title: "AI Chatbot", description: "Instant AI-powered doubt solving and personalized study assistance.", comingSoon: true },
+  { icon: Bell, title: "Announcements", description: "Stay updated with the latest ICAI announcements and official notices.", comingSoon: true },
 ];
 
 const Study = () => {
@@ -34,21 +34,30 @@ const Study = () => {
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.06 }}
-                className="group cursor-pointer rounded-xl border border-border bg-card p-5 shadow-card transition-all hover:shadow-card-hover hover:border-accent/30"
+                className={`group rounded-xl border border-border bg-card p-5 shadow-card transition-all ${tool.comingSoon ? 'opacity-40 cursor-not-allowed grayscale' : 'cursor-pointer hover:shadow-card-hover hover:border-accent/30'}`}
               >
-                <Link href={tool.path ?? ""} className="block w-full h-full">
-                  <div className="flex items-start justify-between">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                      <tool.icon className="h-5 w-5 text-accent" />
+                {tool.comingSoon ? (
+                  <div className="block w-full h-full">
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
+                        <tool.icon className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <span className="rounded-full bg-muted/50 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">Coming Soon</span>
                     </div>
-                    {/* {tool.badge && (
-                      <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-medium text-accent">{tool.badge}</span>
-                    )} */}
+                    <h3 className="mt-4 text-sm font-semibold text-muted-foreground">{tool.title}</h3>
+                    <p className="mt-1.5 text-xs text-muted-foreground/70">{tool.description}</p>
                   </div>
-                  <h3 className="mt-4 text-sm font-semibold text-card-foreground">{tool.title}</h3>
-                  <p className="mt-1.5 text-xs text-muted-foreground">{tool.description}</p>
-                </Link>
+                ) : (
+                  <Link href={tool.path ?? ""} className="block w-full h-full">
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                        <tool.icon className="h-5 w-5 text-accent" />
+                      </div>
+                    </div>
+                    <h3 className="mt-4 text-sm font-semibold text-card-foreground">{tool.title}</h3>
+                    <p className="mt-1.5 text-xs text-muted-foreground">{tool.description}</p>
+                  </Link>
+                )}
               </motion.div>
             ))}
           </div>

@@ -28,10 +28,10 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendEmail = async ({ to, subject, html }: { to: string; subject: string; html: string }) => {
+export const sendEmail = async ({ to, subject, html, fromEmail }: { to: string; subject: string; html: string, fromEmail?: string }) => {
   try {
     const info = await transporter.sendMail({
-      from: `"${process.env.SMTP_FROM_NAME || "StudyHub"}" <${process.env.SMTP_FROM_EMAIL}>`,
+      from: `"${process.env.SMTP_FROM_NAME || "StudyHub"}" <${fromEmail || process.env.SMTP_FROM_EMAIL}>`,
       to,
       subject,
       html,

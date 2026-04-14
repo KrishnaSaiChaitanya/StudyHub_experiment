@@ -97,7 +97,7 @@ const FacultyProfile = ({ faculty, onBack }: FacultyProfileProps) => {
                 {/* <span className="flex items-center gap-1"> */}
                   {/* <Star className="h-3.5 w-3.5 fill-accent text-accent" />{faculty.rating} Rating</span> */}
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{faculty.students} Students</span>
-                <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{faculty.experience} Years Exp</span>
+                <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{faculty.experience}</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-accent" />{faculty.email ?? "xxxxx@gmail.com"}</span>

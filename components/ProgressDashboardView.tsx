@@ -179,16 +179,17 @@ const ProgressDashboardView = ({ onBack }: Props) => {
       .from('study_sessions')
       .select('*')
       .eq('user_id', uid)
-      .gte('session_date', today)
       .order('created_at', { ascending: false });
+
+
 
     if (subjects.length > 0) {
       sessionsQuery = sessionsQuery.in('category', subjects);
     }
 
     const { data: todaySessions } = await sessionsQuery;
-    if (todaySessions) setSessions(todaySessions);
-console.log(todaySessions);
+    if (todaySessions) setSessions(todaySessions.filter((session) => new Date(session.session_date).toDateString() === today));
+
     // Total sessions count
     let countQuery = supabase.from('study_sessions').select('*', { count: 'exact', head: true }).eq('user_id', uid);
     if (subjects.length > 0) {
@@ -270,7 +271,7 @@ console.log(todaySessions);
     hours: duration_seconds / 3600
   })).filter(x => x.hours > 0).sort((a,b) => b.hours - a.hours);
 
-  const totalHours = dailyData.reduce((s, d) => s + d.hours, 0);
+  const totalHours = sessions.reduce((s, d) => s + d.duration_seconds, 0) / 3600;
 
   return (
    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-background text-foreground">
@@ -353,7 +354,7 @@ console.log(todaySessions);
                     <div className="rounded-lg bg-secondary/50 p-3 text-center">
                       <Clock className="mx-auto h-4 w-4 text-accent mb-1" />
                       <p className="text-sm font-bold">{totalHours.toFixed(1)}</p>
-                      <p className="text-[9px] text-muted-foreground">Hours Today</p>
+                      <p className="text-[9px] text-muted-foreground">Total Hours</p>
                     </div>
                   </div>
                 </div>
@@ -373,21 +374,23 @@ console.log(todaySessions);
                   <div className="inline-flex rounded-lg border border-border bg-secondary p-1">
                     <button
                       onClick={() => setTimerMode("stopwatch")}
-                      className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-all ${
+                      className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-all disabled:opacity-50 ${
                         timerMode === "stopwatch"
                           ? "bg-accent text-accent-foreground shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
+                       disabled={running}
                     >
                       <Clock className="h-3.5 w-3.5" /> Stopwatch
                     </button>
                     <button
                       onClick={() => setTimerMode("timer")}
-                      className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-all ${
+                      className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-medium transition-all disabled:opacity-50 ${
                         timerMode === "timer"
                           ? "bg-accent text-accent-foreground shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
+                       disabled={running}
                     >
                       <Timer className="h-3.5 w-3.5" /> Timer
                     </button>

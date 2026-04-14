@@ -43,16 +43,36 @@ export async function POST(req: Request) {
     } else if (plan_name.toLowerCase().includes("annual")) {
       expiry_date = new Date(Date.now() + 366 * 24 * 60 * 60 * 1000).toISOString();
     } else if (plan_name.toLowerCase().includes("attempt")) {
-      // Fetch latest exam date
-      const { data: examData } = await supabase
-        .from("exam_date")
-        .select("last_exam_date")
-        .order("last_exam_date", { ascending: false })
-        .limit(1)
+      // Fetch user profile to get student_type
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("student_type")
+        .eq("id", user.id)
         .single();
-      
-      if (examData?.last_exam_date) {
-        expiry_date = new Date(examData.last_exam_date).toISOString();
+
+      if (profile?.student_type) {
+        // Fetch exam date for this level
+        const { data: examData } = await supabase
+          .from("exam_dates")
+          .select("exam_date")
+          .eq("level", profile.student_type)
+          .single();
+        
+        if (examData?.exam_date) {
+          const baseDate = new Date(examData.exam_date);
+          let extraDays = 0;
+          
+          if (profile.student_type === "final") {
+            extraDays = 10 + 3;
+          } else if (profile.student_type === "foundation") {
+            extraDays = 6 + 3;
+          } else if (profile.student_type === "intermediate") {
+            extraDays = 14 + 3;
+          }
+
+          baseDate.setDate(baseDate.getDate() + extraDays);
+          expiry_date = baseDate.toISOString();
+        }
       }
     }
 

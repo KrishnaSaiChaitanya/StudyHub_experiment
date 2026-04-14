@@ -49,7 +49,7 @@ const proPlans: PlanInfo[] = [
     id: "monthly",
     name: "Monthly",
     price: "₹149",
-    sub: "/month",
+    sub: "Per month . Billed monthly",
     icon: <Calendar className="h-5 w-5" />,
     planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID_MONTHLY,
     amount: 149,
@@ -57,13 +57,13 @@ const proPlans: PlanInfo[] = [
   {
     id: "attempt",
     name: "Attempt Based",
-    price: "₹399",
+    price: "₹499 ",
     sub: "till last exam of upcoming attempt",
     tag: "Most Popular",
     tagVariant: "default",
     icon: <BookOpen className="h-5 w-5" />,
     planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID_ATTEMPT || process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID,
-    amount: 399,
+    amount: 499,
   },
   {
     id: "annual",
@@ -300,8 +300,9 @@ const Pricing = () => {
             Choose Your Plan
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Start free and upgrade when you're ready. Every Pro plan includes a{" "}
-            <span className="font-semibold text-accent">7-day free trial</span>.
+            Start free and upgrade when you're ready. 
+            {/* Every Pro plan includes a{" "}
+            <span className="font-semibold text-accent">7-day free trial</span>. */}
           </p>
         </motion.div>
       </section>

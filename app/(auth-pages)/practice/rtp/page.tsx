@@ -21,8 +21,8 @@ const RTP = () => (
       </div>
     </section>
      <PaperBrowser 
-          title="Mock Test Papers" 
-          subtitle="Browse, bookmark, and download ICAI mock test papers." 
+          title="Revision Test Papers" 
+          subtitle="Browse, bookmark, and download Revision Test Papers" 
           paperType="rtp" 
         />
     <Footer />
