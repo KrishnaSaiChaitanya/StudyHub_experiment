@@ -58,7 +58,7 @@ export const signUpAction = async (formData: FormData) => {
     
     const emailResult = await sendEmail({
       to: email,
-      subject: "Verify your email - StudyHub",
+      subject: "Verify your email - CAStudyHub",
       html: getVerificationEmail(confirmLink),
     });
 
@@ -162,7 +162,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
 
     const emailResult = await sendEmail({
       to: email,
-      subject: "Reset your password - StudyHub",
+      subject: "Reset your password - CAStudyHub",
       html: getPasswordResetEmail(resetLink),
     });
 

@@ -30,14 +30,14 @@ export async function POST(req: Request) {
             to: email,
             subject: `Submission Received: ${title}`,
             html: getSubmissionReceivedEmail(fullName, title),
-            fromEmail: "submissions@castudyhub.in"
+            fromEmail: "submissions@caCAStudyHub.in"
         });
     } else if (type === "approved" || type === "rejected") {
         result = await sendEmail({
             to: email,
             subject: `Update on your submission: ${title}`,
             html: getSubmissionStatusEmail(fullName, title, type as "approved" | "rejected", feedback),
-            fromEmail: "submissions@castudyhub.in"
+            fromEmail: "submissions@caCAStudyHub.in"
         });
     } else {
         return NextResponse.json({ error: "Invalid email type" }, { status: 400 });

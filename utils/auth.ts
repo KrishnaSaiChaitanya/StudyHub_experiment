@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export const USER_CACHE_KEY = "studyhub_auth_user";
-export const SUBSCRIPTION_CACHE_KEY = "studyhub_isSubscribed";
+export const USER_CACHE_KEY = "CAStudyHub_auth_user";
+export const SUBSCRIPTION_CACHE_KEY = "CAStudyHub_isSubscribed";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -15,7 +15,7 @@ export const getCachedUser = () => {
   }
 };
 
-export const SUBSCRIPTION_DATA_CACHE_KEY = "studyhub_subscription_data";
+export const SUBSCRIPTION_DATA_CACHE_KEY = "CAStudyHub_subscription_data";
 
 export const getCachedSubscription = () => {
   if (!isBrowser) return null;

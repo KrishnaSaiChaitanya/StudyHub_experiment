@@ -94,7 +94,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <LogoElement height={32} width={32} />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-lg leading-none tracking-tight">StudyHub</span>
+            <span className="font-bold text-lg leading-none tracking-tight">CAStudyHub</span>
             <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-1">Admin Panel</span>
           </div>
         </div>
@@ -143,7 +143,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-white dark:bg-card sticky top-0 z-30">
           <div className="flex items-center gap-2">
             <LogoElement height={32} width={32} />
-            <span className="font-bold">StudyHub Admin</span>
+            <span className="font-bold">CAStudyHub Admin</span>
           </div>
           <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 rounded-lg bg-secondary">
             <Menu className="h-5 w-5" />

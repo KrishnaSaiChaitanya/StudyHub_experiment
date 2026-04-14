@@ -100,7 +100,7 @@ export const StudentTypeProvider = ({ children }: { children: React.ReactNode })
                 </div>
                 
                 <h2 className="text-2xl font-bold text-center text-foreground mb-2">
-                  Welcome to StudyHub
+                  Welcome to CAStudyHub
                 </h2>
                 <p className="text-center text-muted-foreground mb-8">
                   To personalize your experience, please select your current student level.

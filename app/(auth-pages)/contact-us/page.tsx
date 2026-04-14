@@ -19,7 +19,7 @@ const ContactUs = () => {
   const [loading, setLoading] = useState(false);
   const [infoLoading, setInfoLoading] = useState(true);
   const [contactInfo, setContactInfo] = useState({
-    email: "support@castudyhub.in",
+    email: "support@caCAStudyHub.in",
     phone: "+91 1800-123-4567",
     address: "123 Study Hub Tower\nMumbai, Maharashtra 400001\nIndia"
   });

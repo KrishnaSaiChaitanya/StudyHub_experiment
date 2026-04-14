@@ -93,7 +93,7 @@ export default function CommunityUploadPage() {
             </div>
             <CardTitle className="text-3xl font-bold mb-2">Well Done!</CardTitle>
             <CardDescription className="text-base mb-8">
-              Your contribution makes StudyHub better for everyone. Our admins are reviewing it now.
+              Your contribution makes CAStudyHub better for everyone. Our admins are reviewing it now.
               <div className="mt-4 p-4 bg-muted/50 rounded-xl border border-border/50 flex items-start gap-3 text-left">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                   <span className="text-xl">📧</span>
@@ -285,7 +285,7 @@ export default function CommunityUploadPage() {
                   </Button>
                   <div className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">
                     <ShieldCheck className="h-4 w-4" />
-                    Secure upload verified by StudyHub Admin
+                    Secure upload verified by CAStudyHub Admin
                   </div>
                 </div>
               </form>
