@@ -67,7 +67,7 @@ const PrivacyPolicy = () => {
             transition={{ delay: 0.1 }}
             className="prose prose-sm max-w-none text-muted-foreground mb-8"
           >
-            <p>{intro}</p>
+            <div className="whitespace-pre-wrap leading-relaxed">{intro}</div>
           </motion.div>
 
           <motion.div
@@ -85,7 +85,9 @@ const PrivacyPolicy = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">{section.content}</p>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {section.content}
+                  </div>
                 </CardContent>
               </Card>
             ))}

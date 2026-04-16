@@ -5,13 +5,16 @@ import MockExam from "@/components/MockExam";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
-import { FileText, Clock, ChevronRight, BookOpen, Sparkles, TrendingUp, History, CheckCircle2 } from "lucide-react";
+import { FileText, Clock, ChevronRight, BookOpen, Sparkles, TrendingUp, History, CheckCircle2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useStudent } from "@/components/StudentTypeProvider";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { formatSubjectName } from "@/utils/subjects";
+import Link from "next/link";
 
 interface Test {
   id: string;
@@ -32,6 +35,7 @@ interface Test {
 export default function MockExamsPage() {
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const router = useRouter();
   const supabase = createClient();
   const { subjects, loading: studentLoading } = useStudent();
@@ -92,23 +96,34 @@ export default function MockExamsPage() {
     <>
     <div className="min-h-[calc(100vh-4rem)] bg-background w-full flex flex-col">
       <main className="flex-1 pb-12">
-        <section className="bg-primary py-20 relative overflow-hidden">
+        {/* <section className="bg-primary py-20 relative overflow-hidden"> */}
           {/* Background decorations */}
-          <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+          {/* <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
             <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[150%] rounded-full bg-accent/5 blur-3xl" />
             <div className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[150%] rounded-full bg-accent/5 blur-3xl" />
-          </div>
+          </div> */}
           
-          <div className="container relative z-10">
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-2xl text-center">
+          {/* <div className="container relative z-10"> */}
+            {/* <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-2xl text-center">
               <Badge className="mb-4 bg-accent/10 text-accent hover:bg-accent/20 border-accent/20 px-3 py-1 text-sm">
                 <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Premium Mock Tests
               </Badge>
               <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground tracking-tight">Available <span className="text-gradient-blue text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">Mock Exams</span></h1>
               <p className="mt-4 text-base text-primary-foreground/70 leading-relaxed">Select a test below to start your simulated exam experience. Track your performance and identify areas for improvement.</p>
-            </motion.div>
-          </div>
-        </section>
+            </motion.div> */}
+              <section className="bg-primary py-12">
+      <div className="container">
+       <Link href="/practice"
+                                   className="mb-4 flex items-center gap-1.5  w-[150px] text-xs text-primary-foreground/50  mx-auto hover:text-primary-foreground transition-colors"
+                                 >
+                                   <ArrowLeft className="h-3.5 w-3.5" /> Back to Practice
+                                 </Link>
+        <h1 className="text-center text-3xl font-bold text-primary-foreground">Mock  <span className="text-accent">Exams</span></h1>
+        <p className="mt-2 text-center text-sm text-primary-foreground/50">Comprehensive PYQ bank organized by subject and difficulty</p>
+      </div>
+    </section>
+          {/* </div> */}
+        {/* </section> */}
 
         <section className="container py-16">
           <div className="mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -116,9 +131,24 @@ export default function MockExamsPage() {
               <h2 className="text-2xl font-bold text-card-foreground">All Tests</h2>
               <p className="text-sm text-muted-foreground mt-1">Choose from our curated list of ICAI-aligned mock exams</p>
             </div>
-            <Button variant="outline" onClick={() => router.push('/practice')} className="hover:border-primary">
-              Back to Practice Center
-            </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="w-[200px]">
+                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                  <SelectTrigger className="bg-card">
+                    <SelectValue placeholder="Filter by Subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Subjects</SelectItem>
+                    {subjects.map(sub => (
+                      <SelectItem key={sub} value={sub}>{formatSubjectName(sub as any)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* <Button variant="outline" onClick={() => router.push('/practice')} className="hover:border-primary">
+                Back to Practice Center
+              </Button> */}
+            </div>
           </div>
 
           <AnimatePresence mode="wait">
@@ -136,7 +166,7 @@ export default function MockExamsPage() {
                 </div>
                 <p className="mt-4 text-muted-foreground text-sm font-medium">Loading premium tests...</p>
               </motion.div>
-            ) : tests.length === 0 ? (
+            ) : tests.filter(t => selectedSubject === "all" || t.category === selectedSubject).length === 0 ? (
               <motion.div 
                 key="empty"
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -158,7 +188,9 @@ export default function MockExamsPage() {
                 exit={{ opacity: 0 }}
                 className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
               >
-                {tests.map((test, i) => {
+                {tests
+                  .filter(t => selectedSubject === "all" || t.category === selectedSubject)
+                  .map((test, i) => {
                   const lastAttempt = test.attempts && test.attempts.length > 0 ? test.attempts[0] : null;
                   const isAttempted = !!lastAttempt;
                   const scorePct = lastAttempt ? Math.round((lastAttempt.score / lastAttempt.total_questions) * 100) : 0;

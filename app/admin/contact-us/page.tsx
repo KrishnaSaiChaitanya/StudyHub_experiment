@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { TableFilters } from "@/components/admin/TableFilters";
 
 export default function ContactSubmissionsPage() {
   const supabase = createClient();
@@ -16,6 +17,7 @@ export default function ContactSubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [filters, setFilters] = useState({ column: "name", value: "" });
 
   const fetchSubmissions = async () => {
     setLoading(true);
@@ -62,6 +64,17 @@ export default function ContactSubmissionsPage() {
         </Button>
       </div>
 
+      <TableFilters 
+        columns={[
+          { key: "name", label: "Name" },
+          { key: "email", label: "Email" },
+          { key: "subject", label: "Subject" },
+          { key: "message", label: "Message" }
+        ]} 
+        onFilterChange={setFilters}
+        placeholder="Filter submissions..."
+      />
+
       <Card className="border-border/60">
         {loading ? (
           <div className="flex justify-center p-12">
@@ -79,14 +92,22 @@ export default function ContactSubmissionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {submissions.length === 0 ? (
+              {submissions.filter(s => {
+                if (!filters.value) return true;
+                const field = s[filters.column];
+                return field?.toString().toLowerCase().includes(filters.value.toLowerCase());
+              }).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                     No submissions found yet.
                   </TableCell>
                 </TableRow>
               ) : (
-                submissions.map((submission) => (
+                submissions.filter(s => {
+                  if (!filters.value) return true;
+                  const field = s[filters.column];
+                  return field?.toString().toLowerCase().includes(filters.value.toLowerCase());
+                }).map((submission) => (
                   <TableRow key={submission.id} className="group cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleViewDetails(submission)}>
                     <TableCell className="text-sm">
                       <div className="flex items-center gap-2">

@@ -133,6 +133,12 @@ const Navbar = () => {
           </div>
           <div className="grid gap-3">
             <div className="grid grid-cols-3 items-center gap-4 text-sm mt-2">
+              <Label className="text-muted-foreground">Email</Label>
+              <div className="col-span-2 px-3 py-1.5 rounded-md bg-secondary/30 border border-border/50 text-xs font-medium text-muted-foreground truncate">
+                {user?.email}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 items-center gap-4 text-sm">
               <Label htmlFor={`name-${mobile ? 'mobile' : 'desktop'}`}>Name</Label>
               <Input
                 id={`name-${mobile ? 'mobile' : 'desktop'}`}

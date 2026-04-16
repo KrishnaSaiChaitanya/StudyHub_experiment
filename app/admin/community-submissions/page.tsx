@@ -11,6 +11,7 @@ import { formatSubjectName } from "@/utils/subjects";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { TableFilters } from "@/components/admin/TableFilters";
 
 export default function CommunitySubmissionsAdmin() {
   const supabase = createClient();
@@ -19,7 +20,8 @@ export default function CommunitySubmissionsAdmin() {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  
+  const [filters, setFilters] = useState({ column: "title", value: "" });
+
   // Feedback Dialog
   const [showReject, setShowReject] = useState(false);
   const [selectedSub, setSelectedSub] = useState<any>(null);
@@ -138,6 +140,17 @@ export default function CommunitySubmissionsAdmin() {
         </Button>
       </div>
 
+      <TableFilters 
+        columns={[
+          { key: "title", label: "Title" },
+          { key: "category", label: "Subject" },
+          { key: "uploader_name", label: "Uploader" },
+          { key: "status", label: "Status" }
+        ]} 
+        onFilterChange={setFilters}
+        placeholder="Filter submissions..."
+      />
+
       <Card className="border-none shadow-sm overflow-hidden bg-card/60 backdrop-blur-sm">
         {loading ? (
           <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
@@ -156,7 +169,15 @@ export default function CommunitySubmissionsAdmin() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {submissions.length === 0 && (
+                {submissions.filter(s => {
+                  if (!filters.value) return true;
+                  const field = s[filters.column];
+                  if (filters.column === "category") {
+                    const subjectName = formatSubjectName(s.category as any);
+                    return subjectName.toLowerCase().includes(filters.value.toLowerCase());
+                  }
+                  return field?.toString().toLowerCase().includes(filters.value.toLowerCase());
+                }).length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                        <div className="flex flex-col items-center gap-2">
@@ -165,9 +186,17 @@ export default function CommunitySubmissionsAdmin() {
                        </div>
                     </TableCell>
                   </TableRow>
-                )}
-                {submissions.map(sub => (
-                  <TableRow key={sub.id} className="hover:bg-muted/20 transition-colors">
+                ) : (
+                  submissions.filter(s => {
+                    if (!filters.value) return true;
+                    const field = s[filters.column];
+                    if (filters.column === "category") {
+                      const subjectName = formatSubjectName(s.category as any);
+                      return subjectName.toLowerCase().includes(filters.value.toLowerCase());
+                    }
+                    return field?.toString().toLowerCase().includes(filters.value.toLowerCase());
+                  }).map(sub => (
+                    <TableRow key={sub.id} className="hover:bg-muted/20 transition-colors">
                     <TableCell className="font-medium">{sub.title}</TableCell>
                     <TableCell>
                        <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider bg-background/50">
@@ -221,8 +250,9 @@ export default function CommunitySubmissionsAdmin() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
+                ))
+              )}
+            </TableBody>
             </Table>
           </div>
         )}

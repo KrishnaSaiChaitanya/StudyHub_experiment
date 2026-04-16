@@ -407,7 +407,11 @@ export default function FacultyDetails({ params }: { params: Promise<{ id: strin
             columns={[
               { key: "name", label: "Course Name" },
               { key: "batchtype", label: "Batch Type" },
-              { key: "period", label: "Period" }
+              { key: "period", label: "Period" },
+              { key: "hours_count", label: "Hours" },
+              { key: "views", label: "Views" },
+              { key: "price", label: "Price" },
+              { key: "course_link", label: "Link" }
             ]} 
             onFilterChange={setCourseFilters}
             placeholder="Filter courses..."

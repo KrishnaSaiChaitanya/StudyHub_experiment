@@ -168,7 +168,8 @@ export default function FacultyDashboard() {
           { key: "name", label: "Name" },
           { key: "subject", label: "Subject" },
           { key: "level", label: "Level" },
-          { key: "email", label: "Email" }
+          { key: "email", label: "Email" },
+          { key: "phone", label: "Phone" }
         ]} 
         onFilterChange={setFilters}
         placeholder="Search faculty..."

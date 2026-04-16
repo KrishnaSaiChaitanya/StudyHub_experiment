@@ -67,7 +67,7 @@ const Terms = () => {
             transition={{ delay: 0.1 }}
             className="prose prose-sm max-w-none text-muted-foreground mb-8"
           >
-            <p>{intro}</p>
+            <div className="whitespace-pre-wrap leading-relaxed">{intro}</div>
           </motion.div>
 
           <motion.div
@@ -85,7 +85,9 @@ const Terms = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">{section.content}</p>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {section.content}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -102,9 +104,9 @@ const Terms = () => {
                 <CardTitle className="text-base">Changes to Terms</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
                   {changes_content}
-                </p>
+                </div>
               </CardContent>
             </Card>
 

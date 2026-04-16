@@ -124,7 +124,11 @@ export default function EventsDashboard() {
         columns={[
           { key: "title", label: "Title" },
           { key: "category", label: "Category" },
-          { key: "subject", label: "Subject" }
+          { key: "subject", label: "Subject" },
+          { key: "event_time", label: "Time" },
+          { key: "event_date", label: "Day" },
+          { key: "event_month", label: "Month" },
+          { key: "event_year", label: "Year" }
         ]} 
         onFilterChange={setFilters}
         placeholder="Search events..."

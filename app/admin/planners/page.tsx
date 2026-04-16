@@ -125,7 +125,10 @@ export default function PlannersDashboard() {
       <TableFilters 
         columns={[
           { key: "title", label: "Title" },
-          { key: "category", label: "Subject" }
+          { key: "category", label: "category" },
+          { key: "faculty", label: "Faculty" },
+          { key: "planner_date", label: "Date" },
+          { key: "pages", label: "Pages" }
         ]} 
         onFilterChange={setFilters}
         placeholder="Filter planners..."

@@ -19,7 +19,7 @@ interface StudyTimerContextType {
   setActiveSubject: (subject: SubjectCategory) => void;
   setTimerMode: (mode: 'stopwatch' | 'timer') => void;
   setTimerDuration: (seconds: number) => void;
-  saveSession: () => Promise<boolean>;
+  saveSession: (tag?: string) => Promise<boolean>;
   isSaving: boolean;
 }
 
@@ -153,7 +153,7 @@ export const StudyTimerProvider = ({ children }: { children: React.ReactNode }) 
     setRemaining(secs);
   }, []);
 
-  const saveSession = useCallback(async () => {
+  const saveSession = useCallback(async (tag?: string) => {
     let sessionSeconds = 0;
     if (timerMode === 'stopwatch') {
       sessionSeconds = seconds;
@@ -175,7 +175,8 @@ export const StudyTimerProvider = ({ children }: { children: React.ReactNode }) 
     const { error } = await supabase.from('study_sessions').insert({
       user_id: user.id,
       category: activeSubject,
-      duration_seconds: sessionSeconds
+      duration_seconds: sessionSeconds,
+      tag: tag || null
     });
 
     if (error) {

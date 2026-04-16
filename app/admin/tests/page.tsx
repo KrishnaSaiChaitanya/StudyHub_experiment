@@ -218,6 +218,10 @@ export default function TestsDashboard() {
           columns={[
             { key: "question_text", label: "Question" },
             { key: "option_a", label: "Option A" },
+            { key: "option_b", label: "Option B" },
+            { key: "option_c", label: "Option C" },
+            { key: "option_d", label: "Option D" },
+            { key: "correct_answer", label: "Answer" },
             { key: "notes", label: "Notes" }
           ]} 
           onFilterChange={setQuestionFilters}
@@ -366,7 +370,8 @@ export default function TestsDashboard() {
         columns={[
           { key: "name", label: "Test Name" },
           { key: "category", label: "Subject" },
-          { key: "level", label: "Level" }
+          { key: "level", label: "Level" },
+          { key: "duration", label: "Duration" }
         ]} 
         onFilterChange={setTestFilters}
         placeholder="Filter tests..."

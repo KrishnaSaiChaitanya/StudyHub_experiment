@@ -5,8 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Play, Pause, RotateCcw, Flame, Clock, CalendarDays,
   BookOpen, Plus, Check, Filter, Trash2, Save, Loader2,
-  Lock, Timer
+  Lock, Timer, Tag
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import { SubjectCategory } from "@/utils/supabase/types";
@@ -33,6 +36,7 @@ interface StudySessionType {
   category: SubjectCategory;
   duration_seconds: number;
   created_at: string;
+  tag?: string;
 }
 
 interface Props {
@@ -142,6 +146,10 @@ const ProgressDashboardView = ({ onBack }: Props) => {
   const [todoFilter, setTodoFilter] = useState<string>("All");
   const [newTodo, setNewTodo] = useState("");
   const [isAddingTodo, setIsAddingTodo] = useState(false);
+  
+  // Tag Modal State
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+  const [sessionTag, setSessionTag] = useState("");
 
   // Stats state
   const [sessions, setSessions] = useState<StudySessionType[]>([]);
@@ -174,7 +182,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
 
   const fetchSessions = async (uid: string) => {
     // Today's sessions
-    const today = new Date().toUTCString(); // Gets YYYY-MM-DD local
+    const today = new Date().toDateString(); 
     let sessionsQuery = supabase
       .from('study_sessions')
       .select('*')
@@ -188,7 +196,7 @@ const ProgressDashboardView = ({ onBack }: Props) => {
     }
 
     const { data: todaySessions } = await sessionsQuery;
-    if (todaySessions) setSessions(todaySessions.filter((session) => new Date(session.session_date).toDateString() === today));
+    if (todaySessions) setSessions(todaySessions.filter((session) => new Date(session.created_at).toDateString() === today));
 
     // Total sessions count
     let countQuery = supabase.from('study_sessions').select('*', { count: 'exact', head: true }).eq('user_id', uid);
@@ -251,9 +259,15 @@ const ProgressDashboardView = ({ onBack }: Props) => {
 
   // Timer Actions
   const handleSaveSession = async () => {
-    const success = await saveSession();
+    setIsTagModalOpen(true);
+  };
+
+  const confirmSaveSession = async () => {
+    const success = await saveSession(sessionTag);
     if (success) {
       if (userId) fetchSessions(userId);
+      setIsTagModalOpen(false);
+      setSessionTag("");
     }
   };
 
@@ -518,22 +532,30 @@ const ProgressDashboardView = ({ onBack }: Props) => {
                     {sessions.slice(0, 10).map((session) => (
                       <div
                         key={session.id}
-                        className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2.5"
+                        className="flex flex-col rounded-lg bg-secondary px-3 py-2.5"
                       >
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: getSubjectColor(session.category) }}
-                          />
-                          <span className="text-xs font-medium">{getSubjectAbbreviation(session.category)}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          <span className="text-xs font-semibold">
-                            {formatTime(session.duration_seconds)}
-                          </span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span
+                              className="h-2 w-2 rounded-full shrink-0"
+                              style={{ backgroundColor: getSubjectColor(session.category) }}
+                            />
+                            <span className="text-xs font-medium shrink-0">{getSubjectAbbreviation(session.category)}</span>
+                            {session.tag && (
+                              <div className="flex items-center gap-1 text-[9px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full uppercase tracking-tight truncate">
+                                <Tag className="h-2 w-2" />
+                                <span className="truncate max-w-[100px]">{session.tag}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className="text-xs font-semibold">
+                              {formatTime(session.duration_seconds)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -545,6 +567,61 @@ const ProgressDashboardView = ({ onBack }: Props) => {
               </div>
             </ProFeatureLock>
           </div>
+
+          <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}>
+            <DialogContent className="sm:max-w-md border-none shadow-2xl overflow-hidden p-0">
+               <div className="h-1.5 w-full bg-gradient-to-r from-primary via-accent to-primary" />
+               <div className="p-6">
+                <DialogHeader>
+                  <DialogTitle className="text-xl flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-accent/10">
+                      <Tag className="h-5 w-5 text-accent" />
+                    </div>
+                    Name your Session
+                  </DialogTitle>
+                  <DialogDescription className="text-sm pt-2">
+                    Adding a tag helps you track specific topics or activities (e.g., "Mock Test", "Chapter 1 Revision").
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-6">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">
+                    Session Tag (Optional)
+                  </Label>
+                  <Input
+                    placeholder="e.g. Revision, Practice Test..."
+                    value={sessionTag}
+                    onChange={(e) => setSessionTag(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && confirmSaveSession()}
+                    className="h-12 border-border focus:ring-accent/20 bg-muted/20"
+                    autoFocus
+                  />
+                </div>
+                <DialogFooter className="flex sm:justify-between gap-3">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setIsTagModalOpen(false);
+                      setSessionTag("");
+                    }}
+                    className="flex-1 h-12"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={confirmSaveSession}
+                    disabled={isSavingSession}
+                    className="flex-1 h-12 bg-accent hover:bg-accent/90 shadow-lg shadow-accent/20"
+                  >
+                    {isSavingSession ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Save Session"
+                    )}
+                  </Button>
+                </DialogFooter>
+               </div>
+            </DialogContent>
+          </Dialog>
 
           {/* RIGHT COLUMN: To-Do List (Un-Locked by default) */}
           <motion.div className="rounded-xl border border-border bg-card p-5 shadow-sm flex flex-col h-[700px]">

@@ -13,6 +13,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { SUBJECT_MAPPING, formatSubjectName } from "@/utils/subjects";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 export default function CommunityUploadPage() {
   const supabase = createClient();
@@ -22,6 +24,7 @@ export default function CommunityUploadPage() {
   const [facultyList, setFacultyList] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [pages, setPages] = useState<number | "">("");
+  const [confirmed, setConfirmed] = useState(false);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -269,11 +272,26 @@ export default function CommunityUploadPage() {
                 </div>
 
                 <div className="pt-6">
+                  <div className="flex items-start space-x-3 mb-6 p-4 rounded-xl bg-muted/30 border border-border/50">
+                    <Checkbox 
+                      id="confirm-original" 
+                      checked={confirmed}
+                      onCheckedChange={(checked) => setConfirmed(checked as boolean)}
+                      className="mt-1 border-muted-foreground/30 data-[state=checked]:bg-accent data-[state=checked]:border-accent"
+                    />
+                    <Label 
+                      htmlFor="confirm-original" 
+                      className="text-sm font-medium leading-relaxed text-muted-foreground cursor-pointer select-none"
+                    >
+                      I confirm that the content I am submitting is my original work and does not infringe any third-party copyrights or come from unauthorized sources.
+                    </Label>
+                  </div>
+
                   <Button 
                     type="submit" 
                     size="lg"
                     className="w-full h-14 text-lg font-bold bg-accent hover:bg-accent/90 text-white shadow-lg shadow-accent/20 transition-all active:scale-[0.98]" 
-                    disabled={loading}
+                    disabled={loading || !confirmed}
                   >
                     {loading ? (
                       <Loader2 className="h-6 w-6 animate-spin" />

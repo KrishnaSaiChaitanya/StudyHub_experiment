@@ -124,7 +124,9 @@ export default function PracticePapersDashboard() {
         columns={[
           { key: "title", label: "Title" },
           { key: "subject", label: "Subject" },
-          { key: "exam_year", label: "Year" }
+          { key: "exam_year", label: "Year" },
+          { key: "level", label: "Level" },
+          { key: "type", label: "Type" }
         ]} 
         onFilterChange={setFilters}
         placeholder="Filter papers..."
