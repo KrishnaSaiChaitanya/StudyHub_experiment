@@ -32,6 +32,8 @@ export default function PracticePapersDashboard() {
   const [pages, setPages] = useState("");
   const [type, setType] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
+  const [isSolution, setIsSolution] = useState(false);
+  const [testNo, setTestNo] = useState("");
 
   const allSubjects = [
     ...SUBJECT_MAPPING.foundation,
@@ -60,6 +62,8 @@ export default function PracticePapersDashboard() {
     setPages(paper.pages.toString());
     setType(paper.type);
     setPdfUrl(paper.pdf_url || "");
+    setIsSolution(paper.is_solution || false);
+    setTestNo(paper.test_no || "");
     setEditingId(paper.id);
     setShowAdd(true);
   };
@@ -75,7 +79,9 @@ export default function PracticePapersDashboard() {
       level,
       pages: parseInt(pages) || 0,
       type,
-      pdf_url: pdfUrl
+      pdf_url: pdfUrl,
+      is_solution: isSolution,
+      test_no: testNo || null
     };
 
     let error;
@@ -91,7 +97,7 @@ export default function PracticePapersDashboard() {
       toast({ title: `Error ${editingId ? 'updating' : 'adding'} practice paper`, description: error.message, variant: "destructive" });
     } else {
       toast({ title: `Practice paper ${editingId ? 'updated' : 'added'}!` });
-      setTitle(""); setSubject(""); setExamYear(""); setLevel(""); setPages(""); setType(""); setPdfUrl("");
+      setTitle(""); setSubject(""); setExamYear(""); setLevel(""); setPages(""); setType(""); setPdfUrl(""); setIsSolution(false); setTestNo("");
       setEditingId(null);
       setShowAdd(false);
       fetchData();
@@ -114,7 +120,7 @@ export default function PracticePapersDashboard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={fetchData}><RefreshCw className="h-4 w-4" /></Button>
-          <Button onClick={() => { setEditingId(null); setTitle(""); setSubject(""); setExamYear(""); setLevel(""); setPages(""); setType(""); setPdfUrl(""); setShowAdd(true); }} className="gap-2">
+          <Button onClick={() => { setEditingId(null); setTitle(""); setSubject(""); setExamYear(""); setLevel(""); setPages(""); setType(""); setPdfUrl(""); setIsSolution(false); setTestNo(""); setShowAdd(true); }} className="gap-2">
             <Plus className="h-4 w-4" /> Add Paper
           </Button>
         </div>
@@ -126,7 +132,9 @@ export default function PracticePapersDashboard() {
           { key: "subject", label: "Subject" },
           { key: "exam_year", label: "Year" },
           { key: "level", label: "Level" },
-          { key: "type", label: "Type" }
+          { key: "type", label: "Type" },
+          { key: "test_no", label: "Test No" },
+          { key: "is_solution", label: "Is Solution" }
         ]} 
         onFilterChange={setFilters}
         placeholder="Filter papers..."
@@ -190,6 +198,25 @@ export default function PracticePapersDashboard() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Test No (Optional)</label>
+              <Input value={testNo} onChange={e => setTestNo(e.target.value)} placeholder="e.g., 1" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Is Solution?</label>
+              <Select 
+                required 
+                value={type === "rtp" ? "false" : (isSolution ? "true" : "false")} 
+                onValueChange={(v) => setIsSolution(v === "true")}
+                disabled={type === "rtp"}
+              >
+                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="false">Question</SelectItem>
+                  <SelectItem value="true">Solution</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2 col-span-full">
               <label className="text-sm font-medium">PDF URL</label>
               <Input required type="url" value={pdfUrl} onChange={e => setPdfUrl(e.target.value)} placeholder="https://..." />
@@ -216,6 +243,8 @@ export default function PracticePapersDashboard() {
                 <TableHead>Exam Year</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Test No</TableHead>
+                <TableHead>Paper Category</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -248,6 +277,16 @@ export default function PracticePapersDashboard() {
                   <TableCell>{p.exam_year}</TableCell>
                   <TableCell className="capitalize">{p.level}</TableCell>
                   <TableCell className="uppercase">{p.type}</TableCell>
+                  <TableCell>{p.test_no || "-"}</TableCell>
+                  <TableCell>
+                    {p.type !== 'rtp' ? (
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-medium ${p.is_solution ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                        {p.is_solution ? "Solution" : "Question"}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground italic">N/A</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="text-muted-foreground hover:text-primary">

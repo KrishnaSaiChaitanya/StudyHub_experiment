@@ -84,7 +84,7 @@ const Practice = () => {
     { icon: FileText, title: "Mock Test Papers (MTP)", type: "mtp", description: " Simulate exams and strengthen concepts with MTPs.", link: "/practice/mtp", isDisabled: false, unit: "Papers" },
     { icon: FileText, title: "Revision Test Papers (RTP)", type: "rtp", description: "Refine concepts with ICAI-aligned revision practice tests", link: "/practice/rtp", isDisabled: false, unit: "Papers" },
     { icon: FileText, title: "Previous Year Questions", type: "pyq", description: "Understand examiner mindset through previous year questions", link: "/practice/pyq", isDisabled: false, unit: "Papers" },
-    { icon: ClipboardCheck, title: "Online Mock Exams", type: "online", description: "Simulate final exam pressure and boost performance", link: "/practice/online", isDisabled: true, unit: "Tests" },
+    { icon: ClipboardCheck, title: "Online Mock Exams", type: "online", description: "Simulate final exam pressure and boost performance", link: "/practice/online", isDisabled: false, unit: "Tests" },
   ];
 
   return (
@@ -101,7 +101,7 @@ const Practice = () => {
         <section className="container py-16">
           <div className="grid gap-4 md:grid-cols-2 mb-12">
             {resources.map((res, i) => (
-              <Link href={res.link} key={res.title} className={res.isDisabled ? "pointer-events-none opacity-80" : ""}>
+              <div key={res.title} className={res.isDisabled ? "opacity-80" : ""}>
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -130,11 +130,23 @@ const Practice = () => {
                     </div>
                   </div>
                   <p className="mt-3 flex-1 text-xs text-muted-foreground">{res.description}</p>
-                  <Button variant="outline" size="sm" className="mt-4 w-full text-xs" disabled={res.isDisabled}>
-                    {res.isDisabled ? "Coming soon" : "Browse Papers"}
-                  </Button>
+                  
+                  {res.type === "rtp" ? (
+                    <Button variant="outline" size="sm" className="mt-4 w-full text-xs" disabled={res.isDisabled} asChild={!res.isDisabled}>
+                      {res.isDisabled ? "Coming soon" : <Link href={res.link}>Browse Papers</Link>}
+                    </Button>
+                  ) : (
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                       <Button variant="outline" size="sm" className="text-xs" disabled={res.isDisabled} asChild={!res.isDisabled}>
+                          {res.isDisabled ? "Coming soon" : <Link href={`${res.link}?category=questions`}>Questions</Link>}
+                       </Button>
+                       <Button variant="outline" size="sm" className="text-xs" disabled={res.isDisabled} asChild={!res.isDisabled}>
+                          {res.isDisabled ? "Coming soon" : <Link href={`${res.link}?category=solutions`}>Solutions</Link>}
+                       </Button>
+                    </div>
+                  )}
                 </motion.div>
-              </Link>
+              </div>
             ))}
           </div>
 

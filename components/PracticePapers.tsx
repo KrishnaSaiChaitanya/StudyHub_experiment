@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client"; // Adjust based on your setup
 import { StudentLevel, SubjectCategory } from "@/utils/supabase/types";
+import { useSearchParams } from "next/navigation";
 
 
 type DbPaper = {
@@ -23,7 +24,25 @@ type DbPaper = {
   pages: number;
   exam_year: string
   pdf_url: string;
+  is_solution: boolean;
+  test_no?: string;
   created_at: string;
+};
+
+// Utility to parse exam_year string (e.g. "Sep 2025") into a sortable date
+const parseExamYear = (yearStr: string) => {
+  if (!yearStr) return new Date(0);
+  const parts = yearStr.split(' ');
+  if (parts.length !== 2) return new Date(0);
+  
+  const monthNames: Record<string, number> = {
+    'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+    'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+  };
+  
+  const month = monthNames[parts[0]] ?? 0;
+  const year = parseInt(parts[1]) || 0;
+  return new Date(year, month, 1);
 };
 
 interface PaperBrowserProps {
@@ -39,6 +58,8 @@ const formatSubjectName = (subject: string) => {
 
 const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const category = searchParams.get("category"); // 'questions' or 'solutions'
   const { studentLevel, subjects: studentSubjects, loading: studentLoading } = useStudent();
 
   
@@ -77,9 +98,20 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
           papersQuery = papersQuery.in("subject", studentSubjects);
         }
 
-        const { data: papersData, error: papersError } = await papersQuery.order("exam_year", { ascending: false });
 
-        if (papersData) setPapers(papersData);
+        if (category) {
+          papersQuery = papersQuery.eq("is_solution", category === "solutions");
+        }
+
+        const { data: papersData, error: papersError } = await papersQuery;
+
+        if (papersData) {
+          // Client-side sorting because "Sep 2025" is not easily sortable in SQL
+          const sortedData = [...papersData].sort((a, b) => 
+            parseExamYear(b.exam_year).getTime() - parseExamYear(a.exam_year).getTime()
+          );
+          setPapers(sortedData);
+        }
         if (papersError) console.error("Error fetching papers:", papersError);
 
         // 2. Fetch user's existing bookmarks for practice papers
@@ -103,7 +135,7 @@ const PaperBrowser = ({ title, subtitle, paperType }: PaperBrowserProps) => {
     };
 
     fetchData();
-  }, [supabase, paperType, studentSubjects, studentLevel]);
+  }, [supabase, paperType, studentSubjects, studentLevel, category]);
 
   const toggleBookmark = async (id: string, paperTitle: string) => {
     if (!userId) {
@@ -265,6 +297,8 @@ const downloadPaper = async (paper: DbPaper) => {
     });
   }, [papers, search, subjectFilter, levelFilter]);
 
+  const displayTitle = category ? `${title} (${category.charAt(0).toUpperCase() + category.slice(1)})` : title;
+
 
 
   return (
@@ -274,6 +308,7 @@ const downloadPaper = async (paper: DbPaper) => {
         <div className="flex items-center gap-3">
          
           {/* <h1 className="text-2xl font-bold text-foreground">{title}</h1> */}
+          <h1 className="text-xl font-bold text-foreground">{displayTitle}</h1>
           {!isLoading && papers.length > 0 && (
             <Badge className="bg-accent/15 text-accent border-accent/30 text-xs">
               {papers.length} Papers
@@ -364,6 +399,7 @@ const downloadPaper = async (paper: DbPaper) => {
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <Badge variant="secondary" className="text-[10px]">{formatSubjectName(paper.subject)}</Badge>
                     <Badge variant="outline" className="text-[10px] capitalize">{paper.exam_year}</Badge>
+                    {paper.test_no && <Badge variant="outline" className="text-[10px] bg-accent/5 text-accent border-accent/20">Test {paper.test_no}</Badge>}
                     <span className="text-[10px] text-muted-foreground">{paper.level} • {paper.pages} pages</span>
                   </div>
                 </div>

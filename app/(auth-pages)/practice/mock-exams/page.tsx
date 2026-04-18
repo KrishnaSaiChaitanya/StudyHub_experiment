@@ -24,6 +24,7 @@ interface Test {
   duration?: number;
   level?: string;
   description?: string;
+  test_no?: string;
   updated_at: string;
   attempts?: {
     score: number;
@@ -214,12 +215,13 @@ export default function MockExamsPage() {
         {formatCategory(test.category)}
       </Badge>
       
-      {isAttempted && (
-        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-          <CheckCircle2 className="h-4 w-4" />
-          <span>Attempted</span>
-        </div>
+      {test.test_no && (
+        <Badge variant="outline" className="ml-2 bg-accent/5 text-accent border-accent/20">
+          Test {test.test_no}
+        </Badge>
       )}
+
+     
     </div>
 
     {/* Title */}
@@ -240,12 +242,18 @@ export default function MockExamsPage() {
       </div>
       <div className="flex items-center gap-1.5">
         <TrendingUp className="h-4 w-4 opacity-70" />
-        <span className="font-medium capitalize">{test.level || 'Standard'}</span>
+        <span className="font-medium capitalize">{test.level === "intermediate" ? "Moderate" : test.level || 'Standard'}</span>
       </div>
       <div className="flex items-center gap-1.5">
         <FileText className="h-4 w-4 opacity-70" />
         <span className="font-medium">{test.questions_count} Qs</span>
       </div>
+       {isAttempted && (
+        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>Attempted</span>
+        </div>
+      )}
     </div>
     
     {/* Description */}

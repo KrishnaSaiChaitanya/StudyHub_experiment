@@ -94,8 +94,8 @@ const BookmarksClient = ({ userId }: BookmarksClientProps) => {
             id,
             created_at,
             study_planners ( title, category, pdf_url ),
-            practice_papers ( title, subject, type, pdf_url ),
-            questions ( id, question_text, test_id, tests ( name, category ) )
+            practice_papers ( title, subject, type, pdf_url, exam_year ),
+            questions ( id, question_text, test_id, tests ( name, category, test_no ) )
           `)
           .eq("user_id", userId)
           .order("created_at", { ascending: false });
@@ -122,7 +122,8 @@ const BookmarksClient = ({ userId }: BookmarksClientProps) => {
                 source: formatSubjectName(b.practice_papers.subject as any),
                 savedAt: b.created_at,
                 url: b.practice_papers.pdf_url,
-                subject: b.practice_papers.subject
+                subject: b.practice_papers.subject,
+                exam_year: b.practice_papers.exam_year
               };
             } else if (b.questions) {
               const q = b.questions;
@@ -134,7 +135,8 @@ const BookmarksClient = ({ userId }: BookmarksClientProps) => {
                 savedAt: b.created_at,
                 targetId: q.test_id,
                 questionId: q.id,
-                subject: q.tests?.category
+                subject: q.tests?.category,
+                test_no: q.tests?.test_no
               };
             }
             return null;
@@ -400,7 +402,9 @@ const BookmarksClient = ({ userId }: BookmarksClientProps) => {
                                 </div>
                                 <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
                                   <div className="flex items-center gap-3">
-                                    <span>{bm.source}</span>
+                                    {bm.source}
+                                    {bm.exam_year && <span> · {bm.exam_year}</span>}
+                                    {bm.test_no && <span> · Test {bm.test_no}</span>}
                                     <span>·</span>
                                     <span>Saved {bm.savedAt}</span>
                                   </div>

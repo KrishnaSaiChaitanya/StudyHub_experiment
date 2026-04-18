@@ -17,4 +17,6 @@ export interface BookmarkItem {
   targetId?: string;
   questionId?: string;
   subject?: string;
+  exam_year?: string;
+  test_no?: string;
 }

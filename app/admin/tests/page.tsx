@@ -39,6 +39,7 @@ export default function TestsDashboard() {
   const [testDuration, setTestDuration] = useState<string>("");
   const [testLevel, setTestLevel] = useState<string>("standard");
   const [testDescription, setTestDescription] = useState("");
+  const [testNo, setTestNo] = useState("");
 
   // Form State - Question
   const [questionText, setQuestionText] = useState("");
@@ -84,6 +85,7 @@ export default function TestsDashboard() {
     setTestDuration(test.duration?.toString() || "");
     setTestLevel(test.level || "standard");
     setTestDescription(test.description || "");
+    setTestNo(test.test_no || "");
     setEditingTestId(test.id);
     setShowAddTest(true);
   };
@@ -98,6 +100,7 @@ export default function TestsDashboard() {
       duration: testDuration ? parseInt(testDuration) : null,
       level: testLevel,
       description: testDescription,
+      test_no: testNo || null,
     };
 
     let error;
@@ -113,7 +116,7 @@ export default function TestsDashboard() {
       toast({ title: `Error ${editingTestId ? 'updating' : 'adding'} test`, description: error.message, variant: "destructive" });
     } else {
       toast({ title: `Test ${editingTestId ? 'updated' : 'added'}!` });
-      setTestName(""); setTestCategory(""); setTestDuration(""); setTestLevel("standard"); setTestDescription("");
+      setTestName(""); setTestCategory(""); setTestDuration(""); setTestLevel("standard"); setTestDescription(""); setTestNo("");
       setEditingTestId(null);
       setShowAddTest(false);
       fetchTests();
@@ -360,7 +363,7 @@ export default function TestsDashboard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={fetchTests}><RefreshCw className="h-4 w-4" /></Button>
-          <Button onClick={() => setShowAddTest(!showAddTest)} className="gap-2">
+          <Button onClick={() => { setEditingTestId(null); setTestName(""); setTestCategory(""); setTestDuration(""); setTestLevel("standard"); setTestDescription(""); setTestNo(""); setShowAddTest(true); }} className="gap-2">
             <Plus className="h-4 w-4" /> {showAddTest ? "Cancel" : "Add Test"}
           </Button>
         </div>
@@ -371,7 +374,8 @@ export default function TestsDashboard() {
           { key: "name", label: "Test Name" },
           { key: "category", label: "Subject" },
           { key: "level", label: "Level" },
-          { key: "duration", label: "Duration" }
+          { key: "duration", label: "Duration" },
+          { key: "test_no", label: "Test No" }
         ]} 
         onFilterChange={setTestFilters}
         placeholder="Filter tests..."
@@ -408,10 +412,14 @@ export default function TestsDashboard() {
                   <SelectTrigger><SelectValue placeholder="Select Level" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="intermediate">Moderate</SelectItem>
                     <SelectItem value="advanced">Advanced</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Test No (Optional)</label>
+                <Input value={testNo} onChange={e => setTestNo(e.target.value)} placeholder="e.g., 1" />
               </div>
               
               <div className="col-span-full space-y-2">
@@ -445,6 +453,7 @@ export default function TestsDashboard() {
                 <TableHead>Category</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead>Duration</TableHead>
+                <TableHead>Test No</TableHead>
                 <TableHead>Questions</TableHead>
                 <TableHead className="w-[150px]">Actions</TableHead>
           </TableRow>
@@ -478,6 +487,7 @@ export default function TestsDashboard() {
                   <TableCell>{formatSubjectName(t.category as any)}</TableCell>
                   <TableCell className="capitalize">{t.level || 'standard'}</TableCell>
                   <TableCell>{t.duration ? `${t.duration}m` : '-'}</TableCell>
+                  <TableCell>{t.test_no || '-'}</TableCell>
                   <TableCell>{t.questions_count}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
