@@ -431,7 +431,7 @@ const downloadPaper = async (paper: DbPaper) => {
                       <Eye className="h-4 w-4" />
                     )}
                   </Button>
-                  <Button
+                  {/* <Button
                     variant="secondary"
                     size="sm"
                     className="h-8 gap-1.5 text-xs px-3 min-w-[100px]"
@@ -449,7 +449,7 @@ const downloadPaper = async (paper: DbPaper) => {
                         <span>Download</span>
                       </>
                     )}
-                  </Button>
+                  </Button> */}
                 </div>
               </motion.div>
             ))

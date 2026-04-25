@@ -149,9 +149,9 @@ const ComingSoon = () => {
               </div>
             </motion.div>
           )}
-          <p className="text-xs text-primary-foreground/40 mt-3">
+          {/* <p className="text-xs text-primary-foreground/40 mt-3">
             Join the waitlist to get <span className="text-accent font-medium">Pro access free for 1 month</span> when we launch.
-          </p>
+          </p> */}
         </motion.div>
       </div>
     </div>

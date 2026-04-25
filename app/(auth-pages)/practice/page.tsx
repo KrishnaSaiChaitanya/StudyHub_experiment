@@ -84,7 +84,7 @@ const Practice = () => {
     { icon: FileText, title: "Mock Test Papers (MTP)", type: "mtp", description: " Simulate exams and strengthen concepts with MTPs.", link: "/practice/mtp", isDisabled: false, unit: "Papers" },
     { icon: FileText, title: "Revision Test Papers (RTP)", type: "rtp", description: "Refine concepts with ICAI-aligned revision practice tests", link: "/practice/rtp", isDisabled: false, unit: "Papers" },
     { icon: FileText, title: "Previous Year Questions", type: "pyq", description: "Understand examiner mindset through previous year questions", link: "/practice/pyq", isDisabled: false, unit: "Papers" },
-    { icon: ClipboardCheck, title: "Online Mock Exams", type: "online", description: "Simulate final exam pressure and boost performance", link: "/practice/online", isDisabled: false, unit: "Tests" },
+    { icon: ClipboardCheck, title: "Online Mock Exams", type: "online", description: "Simulate final exam pressure and boost performance", link: "/practice/online", isDisabled: true, unit: "Tests" },
   ];
 
   return (
