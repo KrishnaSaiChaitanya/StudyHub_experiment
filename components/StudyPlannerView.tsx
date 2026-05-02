@@ -351,7 +351,7 @@ console.log(plannersData, "data");
 
                   {/* Actions */}
                   <div className="mt-4 flex items-center gap-2 pt-4  border-border mt-auto">
-                    {/* <Button 
+                    <Button 
                       size="sm" 
                       className="flex-1 gap-1.5 text-xs" 
                       onClick={() => handleDownload(planner)}
@@ -368,7 +368,7 @@ console.log(plannersData, "data");
                           <span>Download</span>
                         </>
                       )}
-                    </Button> */}
+                    </Button>
                     <button
                       onClick={() => window.open(planner.pdf_url, '_blank')}
                       className="flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors hover:bg-secondary shrink-0"
