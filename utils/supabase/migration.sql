@@ -123,6 +123,20 @@ CREATE TABLE public.community_submissions (
   updated_at timestamptz DEFAULT now()
 );
 
+-- Announcements
+CREATE TABLE public.announcements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  date text NOT NULL,
+  summary text NOT NULL,
+  url text NOT NULL,
+  tag text NOT NULL,
+  student_level public.student_level,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+
 -- Test Attempts
 CREATE TABLE public.test_attempts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -324,6 +338,7 @@ CREATE TRIGGER tr_update_community_submissions BEFORE UPDATE ON public.community
 CREATE TRIGGER tr_update_notes BEFORE UPDATE ON public.notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER tr_update_todos BEFORE UPDATE ON public.todos FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER tr_update_subscriptions BEFORE UPDATE ON public.subscriptions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER tr_update_announcements BEFORE UPDATE ON public.announcements FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Apply Trigger for question count
 CREATE TRIGGER tr_question_counter AFTER INSERT OR UPDATE OR DELETE ON public.questions FOR EACH ROW EXECUTE FUNCTION update_test_question_count();
@@ -350,6 +365,7 @@ ALTER TABLE public.test_attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_bookmarks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 
 -- 5. POLICIES
 -- Read-only for authenticated
@@ -362,6 +378,9 @@ CREATE POLICY "Auth Read Access" ON public.practice_papers FOR SELECT TO authent
 CREATE POLICY "Auth Read Access" ON public.study_planners FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Auth Read Access" ON public.calendar_events FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Auth Read Access" ON public.exam_dates FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Auth Read Access" ON public.announcements FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Admin All Access" ON public.announcements FOR ALL TO authenticated USING (true);
+
 
 -- User-owned data (Manage Own)
 CREATE POLICY "Manage Own Profile" ON public.profiles FOR ALL TO authenticated USING (auth.uid() = id);

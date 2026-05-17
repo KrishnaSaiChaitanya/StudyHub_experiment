@@ -24,6 +24,7 @@ const navGroups = [
       { href: "/admin/tests", exact: false, icon: FileText, label: "Tests & MCQs" },
       { href: "/admin/practice-papers", exact: false, icon: GraduationCap, label: "Practice Papers" },
       { href: "/admin/site-content", exact: false, icon: FileText, label: "Site Content" },
+      { href: "/admin/spom", exact: false, icon: BookOpen, label: "SPOM Content" },
     ]
   },
   {
@@ -34,6 +35,7 @@ const navGroups = [
       { href: "/admin/community-submissions", exact: false, icon: Users, label: "Submissions" },
       { href: "/admin/faculty", exact: false, icon: Users, label: "Faculty" },
       { href: "/admin/rooms", exact: false, icon: Video, label: "Study Rooms" },
+      { href: "/admin/forum-reports", exact: false, icon: Mail, label: "Forum Reports" },
     ]
   }
 ];

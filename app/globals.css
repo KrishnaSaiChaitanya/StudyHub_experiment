@@ -57,6 +57,38 @@
   body {
     /* @apply bg-background text-foreground antialiased; */
   }
+
+  .prose img {
+    padding: 1rem;
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+    display: block;
+    margin: 0 auto;
+    object-fit: contain;
+  }
+
+  .prose ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .prose ol {
+    list-style-type: decimal;
+    padding-left: 1.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .prose p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+    height: 0;
+  }
 }
 
 @layer utilities {
