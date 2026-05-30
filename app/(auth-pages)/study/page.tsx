@@ -2,7 +2,7 @@
 
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { BookOpen, Timer, CalendarDays, Target, BarChart3, ClipboardList, Bot, Bell, Award } from "lucide-react";
+import { BookOpen, Timer, CalendarDays, Target, BarChart3, ClipboardList, Bot, Bell, Award, Layers } from "lucide-react";
 import Link from "next/link";
 import { useStudent } from "@/components/StudentTypeProvider";
 
@@ -11,22 +11,24 @@ const tools = [
   { icon: BarChart3, title: "Progress dashboard", description: "Track study time, maintain streaks, manage tasks, and view detailed analytics.", path: "/study/progress" },
   { icon: CalendarDays, title: "Exam Calendar", description: "ICAI exam dates, registration deadlines, and reminders.", path: "/study/events" },
   { icon: ClipboardList, title: "Notes & Bookmarks", description: "Save notes, bookmark resources, and organize materials.", path: "/bookmarks" },
-  { icon: Bot, title: "AI Chatbot", description: "Instant AI-powered doubt solving and personalized study assistance.", comingSoon: true },
+  { icon: Layers, title: "Flashcards", description: "Master concepts faster with digital flashcards organized by folders.", path: "/study/flash-cards" },
+
   { icon: Bell, title: "Announcements", description: "Stay updated with the latest ICAI announcements and official notices.", path: "/study/announcements" },
+  { icon: Bot, title: "AI Chatbot", description: "Instant AI-powered doubt solving and personalized study assistance.", comingSoon: true },
 ];
 
 const Study = () => {
   const { studentLevel } = useStudent();
 
   const studyTools = [...tools];
-  if (studentLevel === "final") {
-    studyTools.push({
-      icon: Award,
-      title: "SPOM (Self-Paced)",
-      description: "Access Set A–D papers, study materials, and peer observations.",
-      path: "/study/spom"
-    });
-  }
+if (studentLevel === "final") {
+  studyTools.splice(Math.max(studyTools.length - 1, 0), 0, {
+    icon: Award,
+    title: "SPOM (Self-Paced)",
+    description: "Access Set A–D papers, study materials, and peer observations.",
+    path: "/study/spom"
+  });
+}
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background flex flex-col w-full">

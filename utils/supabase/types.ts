@@ -178,6 +178,50 @@ export interface SubjectMeetLink {
   updated_at: string;
 }
 
+export interface FlashcardFolder {
+  id: string;
+  user_id: string;
+  name: string;
+  tag: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FlashcardSet {
+  id: string;
+  user_id: string | null;
+  title: string;
+  subject: SubjectCategory;
+  is_admin: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Flashcard {
+  id: string;
+  set_id: string;
+  user_id: string | null;
+  front: string;
+  back: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FlashcardFolderSet {
+  folder_id: string;
+  set_id: string;
+  created_at: string;
+}
+
+export interface FlashcardRequest {
+  id: string;
+  user_id: string | null;
+  topic: string;
+  notes: string | null;
+  created_at: string;
+}
+
 // ==========================================
 // 3. SUPABASE DATABASE INTERFACE
 // ==========================================
@@ -201,6 +245,11 @@ export interface Database {
       test_attempts: { Row: TestAttempt; Insert: Partial<TestAttempt>; Update: Partial<TestAttempt> };
       test_attempt_answers: { Row: TestAttemptAnswer; Insert: Partial<TestAttemptAnswer>; Update: Partial<TestAttemptAnswer> };
       subject_meet_links: { Row: SubjectMeetLink; Insert: Partial<SubjectMeetLink>; Update: Partial<SubjectMeetLink> };
+      flashcard_folders: { Row: FlashcardFolder; Insert: Partial<FlashcardFolder>; Update: Partial<FlashcardFolder> };
+      flashcard_sets: { Row: FlashcardSet; Insert: Partial<FlashcardSet>; Update: Partial<FlashcardSet> };
+      flashcards: { Row: Flashcard; Insert: Partial<Flashcard>; Update: Partial<Flashcard> };
+      flashcard_folder_sets: { Row: FlashcardFolderSet; Insert: Partial<FlashcardFolderSet>; Update: Partial<FlashcardFolderSet> };
+      flashcard_requests: { Row: FlashcardRequest; Insert: Partial<FlashcardRequest>; Update: Partial<FlashcardRequest> };
     };
     Enums: {
       student_level: StudentLevel;

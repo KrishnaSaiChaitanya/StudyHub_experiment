@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   BookOpen, Users, FileText, LayoutDashboard, Mail, 
-  CalendarDays, Video, Menu, X, ArrowLeft, Settings, GraduationCap, Megaphone, MessageSquare
+  CalendarDays, Video, Menu, X, ArrowLeft, Settings, GraduationCap, Megaphone, MessageSquare, Layers
 } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ const navGroups = [
       { href: "/admin/practice-papers", exact: false, icon: GraduationCap, label: "Practice Papers" },
       { href: "/admin/site-content", exact: false, icon: FileText, label: "Site Content" },
       { href: "/admin/spom", exact: false, icon: BookOpen, label: "SPOM Content" },
+      { href: "/admin/flash-cards", exact: false, icon: Layers, label: "Flashcards" },
     ]
   },
   {

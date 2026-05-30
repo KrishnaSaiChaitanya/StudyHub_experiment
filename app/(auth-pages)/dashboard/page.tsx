@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Footer from "@/components/Footer";
+import NotificationsBell from "@/components/notifications/Notification";
 import {
   BarChart3,
   Users,
@@ -279,16 +280,39 @@ const Home = () => {
     <div className="min-h-screen bg-background flex flex-col">
       {/* <Navbar /> */}
 
+
+       {/* <div className="overflow-hidden bg-black py-1.5 border-y border-black/10">
+        <div className="flex w-max animate-marquee whitespace-nowrap">
+          {[0, 1].map((dup) => (
+            <div key={dup} className="flex items-center gap-12 px-6 text-xs font-medium text-white">
+              <span>🚀 New: Practice Planner is live — track question-wise revision</span>
+              <span>•</span>
+              <span>📅 Exam attempts now available: Nov 2026, May 2027, Nov 2027, May 2028</span>
+              <span>•</span>
+              <span>🤖 AI Chatbot upgraded with faster responses</span>
+              <span>•</span>
+              <span>🏆 Climb the new Leaderboard — earn XP daily</span>
+              <span>•</span>
+              <span>📚 Fresh ICAI announcements added every week</span>
+              <span>•</span>
+            </div>
+          ))}
+        </div>
+      </div> */}
+
       <main className="container max-w-5xl py-10 lg:py-16 flex-1">
         {/* Greeting */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-          <h1 className="text-2xl font-bold text-foreground md:text-3xl capitalize">
-            Welcome back, {userName}! 👋
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Here's your study overview for today.
-          </p>
-        </motion.div>
+        <div className="flex items-center justify-between gap-4">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <h1 className="text-2xl font-bold text-foreground md:text-3xl capitalize">
+              Welcome back, {userName}! 👋
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Here's your study overview for today.
+            </p>
+          </motion.div>
+          <NotificationsBell />
+        </div>
 
         {/* Exam Countdown */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }} className="mt-10">
