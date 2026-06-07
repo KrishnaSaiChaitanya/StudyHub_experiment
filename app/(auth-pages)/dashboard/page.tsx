@@ -54,9 +54,9 @@ type DbEvent = {
   id: string;
   title: string;
   subject: string;
-  level: string;
-  type: string;
-  created_at: string;
+  level?: string;
+  type?: string;
+  created_at?: string;
   event_month: number;
   event_year: number;
   event_date: number;
@@ -155,7 +155,7 @@ const Home = () => {
       const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Student";
       const todayStr = new Date().toISOString().split('T')[0];
 
-      // Fetch Stats, Events, Papers, Exam Dates, Planners, and Ticker concurrently
+      // Fetch Stats, Events, Papers, Exam Dates, Planners, Ticker, and Announcements concurrently
       const [
         profileRes,
         sessionsRes,
@@ -164,11 +164,12 @@ const Home = () => {
         papersRes,
         examDatesRes,
         plannersRes,
-        tickerRes
+        tickerRes,
+        announcementsRes
       ] = await Promise.all([
         supabase.from('profiles').select('current_streak, quick_access_preference').eq('id', user.id).single(),
         supabase.from('study_sessions').select('duration_seconds').eq('user_id', user.id).eq('session_date', todayStr),
-        supabase.from('todos').select('status').eq('user_id', user.id).in('category', [...subjects, "general"]),
+        supabase.from('todos').select('*').eq('user_id', user.id),
         supabase.from('calendar_events').select('*').in('subject', ['general', ...subjects]),
         supabase.from('practice_papers')
           .select('*')
@@ -179,6 +180,9 @@ const Home = () => {
         supabase.from('exam_dates').select('*'),
         supabase.from('study_planners').select('*').in('category', subjects).order('created_at', { ascending: false }).limit(5),
         supabase.from('site_content').select('*').eq('page_id', 'dashboard_ticker').maybeSingle(),
+        studentLevel
+          ? supabase.from('announcements').select('*').or(`student_level.eq.${studentLevel},student_level.is.null`)
+          : supabase.from('announcements').select('*').is("student_level", null)
       ]);
 
       // Process Stats
@@ -186,8 +190,9 @@ const Home = () => {
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
 
-      const completed = todosRes.data?.filter((t: any) => t.status === 'completed').length || 0;
-      const total = todosRes.data?.length || 0;
+      const allowedSubjects = ['general', ...subjects];
+      const completed = todosRes.data?.filter((t: any) => t.done && allowedSubjects.includes(t.subject)).length || 0;
+      const total = todosRes.data?.filter((t: any) => allowedSubjects.includes(t.subject)).length || 0;
 
       // Process Exam Date
       const userLevel = studentLevel || 'foundation';
@@ -199,14 +204,74 @@ const Home = () => {
 
       // Process Events
       let upcoming: DbEvent[] = [];
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      const combinedEvents: any[] = [];
+
+      // 1. Calendar Events
       if (eventsRes.data) {
-        const now = new Date();
-        upcoming = eventsRes.data
-          .map((e: any) => ({ ...e, fullDate: new Date(e.event_year, e.event_month - 1, e.event_date) }))
-          .filter((e: any) => e.fullDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))
-          .sort((a: any, b: any) => a.fullDate.getTime() - b.fullDate.getTime())
-          .slice(0, 3) as DbEvent[];
+        eventsRes.data.forEach((e: any) => {
+          combinedEvents.push({
+            id: e.id,
+            title: e.title,
+            subject: e.subject || "general",
+            event_year: e.event_year,
+            event_month: e.event_month,
+            event_date: e.event_date,
+            event_time: e.event_time || "",
+            fullDate: new Date(e.event_year, e.event_month - 1, e.event_date),
+          });
+        });
       }
+
+      // 2. Todos
+      if (todosRes.data) {
+        todosRes.data.forEach((todo: any) => {
+          if (todo.todo_date) {
+            const dateObj = new Date(todo.todo_date);
+            if (!isNaN(dateObj.getTime())) {
+              combinedEvents.push({
+                id: todo.id,
+                title: `To-Do: ${todo.text}`,
+                subject: todo.subject || "general",
+                event_year: dateObj.getFullYear(),
+                event_month: dateObj.getMonth() + 1,
+                event_date: dateObj.getDate(),
+                event_time: todo.done ? "Completed" : "Pending",
+                fullDate: new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()),
+              });
+            }
+          }
+        });
+      }
+
+      // 3. Announcements
+      if (announcementsRes.data) {
+        const dateRegex = /^[A-Za-z]{3,9}\s\d{1,2},\s\d{4}$/;
+        announcementsRes.data.forEach((ann: any) => {
+          if (ann.date && dateRegex.test(ann.date.trim())) {
+            const dateObj = new Date(ann.date.trim());
+            if (!isNaN(dateObj.getTime())) {
+              combinedEvents.push({
+                id: ann.id,
+                title: `ICAI: ${ann.title}`,
+                subject: "general",
+                event_year: dateObj.getFullYear(),
+                event_month: dateObj.getMonth() + 1,
+                event_date: dateObj.getDate(),
+                event_time: "All Day",
+                fullDate: new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()),
+              });
+            }
+          }
+        });
+      }
+
+      upcoming = combinedEvents
+        .filter((e: any) => e.fullDate >= now)
+        .sort((a: any, b: any) => a.fullDate.getTime() - b.fullDate.getTime())
+        .slice(0, 3) as DbEvent[];
 
       let tickerMessages: string[] = [];
       if (tickerRes?.data && tickerRes.data.content && Array.isArray(tickerRes.data.content.messages)) {
@@ -285,26 +350,19 @@ const Home = () => {
     tickerMessages = []
   } = data || {};
 
-  const defaultAnnouncements = [
-    "🚀 New: Practice Planner is live — track question-wise revision",
-    "📅 Exam attempts now available: Nov 2026, May 2027, Nov 2027, May 2028",
-    "🤖 AI Chatbot upgraded with faster responses",
-    "🏆 Climb the new Leaderboard — earn XP daily",
-    "📚 Fresh ICAI announcements added every week"
-  ];
 
-  const announcementsList = tickerMessages.length > 0 ? tickerMessages : defaultAnnouncements;
+  const announcementsList = tickerMessages;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* <Navbar /> */}
 
 
-       <div className="overflow-hidden bg-black py-1.5 border-y border-black/10">
+    {announcementsList?.length> 0 && <div className="overflow-hidden bg-black py-1.5 border-y border-black/10">
         <div className="flex w-max animate-marquee whitespace-nowrap">
           {[0, 1].map((dup) => (
             <div key={dup} className="flex items-center gap-12 px-6 text-xs font-medium text-white">
-              {announcementsList.map((ann: string, idx: number) => (
+              {announcementsList?.map((ann: string, idx: number) => (
                 <span key={idx} className="flex items-center gap-12">
                   <span>{ann}</span>
                   <span>•</span>
@@ -313,7 +371,7 @@ const Home = () => {
             </div>
           ))}
         </div>
-      </div>
+      </div>}
 
       <main className="container max-w-5xl py-10 lg:py-16 flex-1">
         {/* Greeting */}

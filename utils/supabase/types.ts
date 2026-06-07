@@ -125,9 +125,10 @@ export interface StudySession {
 export interface Todo {
   id: string; // UUID
   user_id: string; // UUID
-  description: string;
-  category: SubjectCategory;
-  status: TodoStatus;
+  text: string;
+  subject: SubjectCategory;
+  todo_date: string; // YYYY-MM-DD
+  done: boolean;
   created_at: string;
   updated_at: string;
 }

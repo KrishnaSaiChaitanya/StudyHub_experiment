@@ -196,10 +196,11 @@ CREATE TABLE public.study_sessions (
 -- Todos
 CREATE TABLE public.todos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES public.profiles(id),
-  description text NOT NULL,
-  category public.subject_category NOT NULL,
-  status public.todo_status DEFAULT 'pending',
+  user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+  text text NOT NULL,
+  subject public.subject_category NOT NULL,
+  todo_date date NOT NULL,
+  done boolean DEFAULT false,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );

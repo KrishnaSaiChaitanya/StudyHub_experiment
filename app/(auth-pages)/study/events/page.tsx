@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ChevronLeft, ChevronRight, X, Clock } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, X, Clock, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/utils/supabase/client"; // Adjust to your Supabase client path
@@ -12,19 +12,21 @@ import { useStudent } from "@/components/StudentTypeProvider";
 type DbCalendarEvent = {
   id: string;
   title: string;
-  category: "Exam" | "Mocks" | "Deadlines" | "Sessions";
-  type: string;
+  category: "Exam" | "Mocks" | "Deadlines" | "Sessions" | "Todo" | "Announcement";
+  type?: string;
   description: string;
   created_at: string;
   event_month: number;
   event_year: number;
   event_date: number;
   event_time: string;
+  url?: string;
+  done?: boolean;
 };
 
 
 
-const EVENT_CATEGORIES = ["Exam", "Mocks", "Deadlines", "Sessions"] as const;
+const EVENT_CATEGORIES = ["Exam", "Mocks", "Deadlines", "Sessions", "Todo", "Announcement"] as const;
 type EventCategory = typeof EVENT_CATEGORIES[number];
 
 const CATEGORY_COLORS: Record<EventCategory, string> = {
@@ -32,6 +34,8 @@ const CATEGORY_COLORS: Record<EventCategory, string> = {
   "Mocks": "bg-blue-500/15 text-blue-600 border-blue-500/30 ring-blue-500 shadow-blue-100",
   "Deadlines": "bg-orange-500/15 text-orange-600 border-orange-500/30 ring-orange-500 shadow-orange-100",
   "Sessions": "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 ring-emerald-500 shadow-emerald-100",
+  "Todo": "bg-purple-500/15 text-purple-600 border-purple-500/30 ring-purple-500 shadow-purple-100",
+  "Announcement": "bg-amber-500/15 text-amber-600 border-amber-500/30 ring-amber-500 shadow-amber-100",
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -48,7 +52,7 @@ const ExamCalendarView = () => {
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [filterCategory, setFilterCategory] = useState<EventCategory | null>(null);
   
-  const { subjects, loading: studentLoading } = useStudent();
+  const { studentLevel, subjects, loading: studentLoading } = useStudent();
   const [events, setEvents] = useState<DbCalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,14 +68,103 @@ const ExamCalendarView = () => {
         // User's subjects + general events
         const allowedSubjects = ['general', ...subjects];
         
+        // 1. Fetch Calendar Events
         const { data: calendarEvents } = await supabase
           .from("calendar_events")
           .select("*")
           .in('subject', allowedSubjects);
 
-        if (calendarEvents) {
-          setEvents(calendarEvents);
+        // 2. Fetch User's Todos
+        const { data: { user } } = await supabase.auth.getUser();
+        let userTodos: any[] = [];
+        if (user) {
+          const { data: fetchedTodos } = await supabase
+            .from("todos")
+            .select("*")
+            .eq("user_id", user.id);
+          if (fetchedTodos) {
+            userTodos = fetchedTodos;
+          }
         }
+
+        // 3. Fetch Level-matched Announcements (student_level matches current level or is empty/null)
+        let levelAnnouncements: any[] = [];
+        let announcementsQuery = supabase.from("announcements").select("*");
+        if (studentLevel) {
+          announcementsQuery = announcementsQuery.or(`student_level.eq.${studentLevel},student_level.is.null`);
+        } else {
+          announcementsQuery = announcementsQuery.is("student_level", null);
+        }
+        const { data: fetchedAnnouncements } = await announcementsQuery;
+        if (fetchedAnnouncements) {
+          levelAnnouncements = fetchedAnnouncements;
+        }
+
+
+        // Combine and format all items as DbCalendarEvent
+        const formattedEvents: DbCalendarEvent[] = [];
+
+        if (calendarEvents) {
+          calendarEvents.forEach((e) => {
+            formattedEvents.push({
+              id: e.id,
+              title: e.title,
+              category: (e.category || "Deadlines") as any,
+              type: "event",
+              description: e.description || "",
+              created_at: e.created_at,
+              event_month: e.event_month,
+              event_year: e.event_year,
+              event_date: e.event_date,
+              event_time: e.event_time || "",
+            });
+          });
+        }
+
+        userTodos.forEach((todo) => {
+          if (todo.todo_date) {
+            const dateObj = new Date(todo.todo_date);
+            if (!isNaN(dateObj.getTime())) {
+              formattedEvents.push({
+                id: todo.id,
+                title: `To-Do: ${todo.text}`,
+                category: "Todo",
+                type: "todo",
+                description: `Subject: ${formatSubjectName(todo.subject)}`,
+                created_at: todo.created_at,
+                event_month: dateObj.getMonth() + 1,
+                event_year: dateObj.getFullYear(),
+                event_date: dateObj.getDate(),
+                event_time: todo.done ? "Completed" : "Pending",
+                done: todo.done,
+              });
+            }
+          }
+        });
+
+        const dateRegex = /^[A-Za-z]{3,9}\s\d{1,2},\s\d{4}$/;
+        levelAnnouncements.forEach((ann) => {
+          if (ann.date && dateRegex.test(ann.date.trim())) {
+            const dateObj = new Date(ann.date.trim());
+            if (!isNaN(dateObj.getTime())) {
+              formattedEvents.push({
+                id: ann.id,
+                title: `ICAI Announcement: ${ann.title}`,
+                category: "Announcement",
+                type: "announcement",
+                description: ann.summary || "",
+                created_at: ann.created_at,
+                event_month: dateObj.getMonth() + 1,
+                event_year: dateObj.getFullYear(),
+                event_date: dateObj.getDate(),
+                event_time: "All Day",
+                url: ann.url,
+              });
+            }
+          }
+        });
+
+        setEvents(formattedEvents);
       } catch (error) {
         console.error("Error fetching calendar data:", error);
       } finally {
@@ -80,7 +173,7 @@ const ExamCalendarView = () => {
     };
 
     fetchData();
-  }, [supabase, subjects, studentLoading]);
+  }, [supabase, subjects, studentLoading, studentLevel]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1; // 1-12 matching DB schema (event_month)
@@ -272,6 +365,16 @@ const ExamCalendarView = () => {
                                     </div>
                                   )}
                                   {ev.description && <p className="mt-1 text-xs opacity-70">{ev.description}</p>}
+                                  {ev.url && (
+                                    <a
+                                      href={ev.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-accent hover:underline"
+                                    >
+                                      View Announcement <ExternalLink className="h-2.5 w-2.5" />
+                                    </a>
+                                  )}
                                 </div>
                               ))
                             )}
