@@ -31,7 +31,9 @@ export const ProFeatureLock = ({ children, label }: { children: ReactNode, label
     );
   }
 
-  if (isSubscribed) return <>{children}</>;
+  const requirePayment = process.env.NEXT_PUBLIC_REQUIRE_PAYMENT === 'true';
+
+  if (!requirePayment || isSubscribed) return <>{children}</>;
 
   return (
     <div className="relative w-full h-full min-h-[200px] flex items-center justify-center overflow-hidden rounded-[inherit] ">

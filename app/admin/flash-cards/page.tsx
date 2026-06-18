@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { formatSubjectName } from "@/utils/subjects";
 import { Badge } from "@/components/ui/badge";
 import CreateSetDialog from "@/components/flash-cards/CreateSetDialog";
+import { deleteFlashcardRequest } from "./actions";
 
 export default function AdminFlashcardsPage() {
   const supabase = createClient();
@@ -94,8 +95,7 @@ export default function AdminFlashcardsPage() {
 
     setActionId(requestId);
     try {
-      const { error } = await supabase.from("flashcard_requests").delete().eq("id", requestId);
-      if (error) throw error;
+      await deleteFlashcardRequest(requestId);
 
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
       toast({ title: "Request dismissed" });

@@ -1,6 +1,6 @@
 "use client";
 
-import { Folder, ChevronRight, Tag } from "lucide-react";
+import { Folder, ChevronRight, Tag, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 
@@ -9,10 +9,11 @@ interface FolderCardProps {
   tag: string;
   setCount: number;
   onClick: () => void;
+  onDelete?: (e: React.MouseEvent) => void;
   index: number;
 }
 
-export default function FolderCard({ name, tag, setCount, onClick, index }: FolderCardProps) {
+export default function FolderCard({ name, tag, setCount, onClick, onDelete, index }: FolderCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -26,7 +27,18 @@ export default function FolderCard({ name, tag, setCount, onClick, index }: Fold
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 group-hover:bg-accent/20 transition-colors">
           <Folder className="h-4 w-4 text-accent" />
         </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors" />
+        <div className="flex items-center gap-1">
+          {onDelete && (
+            <div 
+              onClick={onDelete}
+              className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+              title="Delete folder"
+            >
+              <Trash2 className="h-4 w-4" />
+            </div>
+          )}
+          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors" />
+        </div>
       </div>
 
       <div>

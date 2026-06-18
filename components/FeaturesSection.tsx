@@ -15,7 +15,7 @@ const features = [
   { icon: Timer, title: "Study Timer", description: "Track your study hours with Pomodoro timer and analytics." },
   { icon: Target, title: "Task Management", description: "Organize preparation with smart to-do lists and planners." },
   { icon: BarChart3, title: "Progress Tracking", description: "Visualize your journey with performance analytics." },
-  { icon: CalendarDays, title: "Exam Calendar", description: "ICAI exam dates, registration alerts, and reminders." },
+  { icon: CalendarDays, title: "Calendar", description: "ICAI exam dates, registration alerts, and reminders." },
   { icon: MessageCircle, title: "Community Forum", description: "Discuss doubts and share strategies with peers." },
   { icon: Compass, title: "Career Guidance", description: "Mentorship and career advice from qualified CAs." },
   { icon: BookOpen, title: "Study Planner", description: "Personalized study plans based on your exam schedule." },

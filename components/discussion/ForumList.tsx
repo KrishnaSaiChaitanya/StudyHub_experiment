@@ -152,7 +152,7 @@ export const ForumList = ({ onBack, onCreatePost, onPostClick, onProfileClick, g
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
-  const posts = data?.pages.flatMap((page) => page.data) || [];
+  const posts = data?.pages.flatMap((page) => page.data).filter(post => post.status === "active") || [];
 
   const handleVote = async (postId: string, value: 1 | -1, e: React.MouseEvent) => {
     e.stopPropagation();

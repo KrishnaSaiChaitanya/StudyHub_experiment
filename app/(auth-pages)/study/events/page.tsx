@@ -226,7 +226,7 @@ const ExamCalendarView = () => {
                   <ArrowLeft className="h-3.5 w-3.5" /> Back to Study Tools
                 </button>
                 <h1 className="text-3xl font-bold text-primary-foreground">Calendar <span className="text-gradient-blue">Events</span></h1>
-                <p className="mt-2 text-sm text-primary-foreground/50">Browse and download study planners shared by top faculty.</p>
+                <p className="mt-2 text-sm text-primary-foreground/50">ICAI exam dates, registration alerts, and reminders.</p>
               </div>
             </div>
           </section>

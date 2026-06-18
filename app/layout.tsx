@@ -35,6 +35,7 @@ const poppins = Poppins({
 });
 
 import { ConditionalLayout } from "@/components/ConditionalLayout";
+import WelcomeModal from "@/components/welcomeModel";
 
 export default function RootLayout({
   children,
@@ -49,6 +50,7 @@ export default function RootLayout({
               <Providers>
                 <ConditionalLayout>
                   {children}
+                  <WelcomeModal />
                 </ConditionalLayout>
               </Providers>
             </QueryProvider>

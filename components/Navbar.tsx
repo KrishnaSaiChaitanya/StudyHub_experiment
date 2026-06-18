@@ -34,6 +34,7 @@ const Navbar = () => {
   const [user, setUser] = useState<any>(null);
   const { isSubscribed: isPro, planName, expiryDate } = useSubscription();
   const { studentLevel, refreshProfile } = useStudent();
+  const requirePayment = process.env.NEXT_PUBLIC_REQUIRE_PAYMENT === 'true';
   
   const [editName, setEditName] = useState("");
   const [editStudentType, setEditStudentType] = useState("");
@@ -167,26 +168,28 @@ const Navbar = () => {
             </Button>
           </div>
           
-          <div className="border-t border-border pt-4">
-            <h4 className="font-medium leading-none text-sm mb-3">Current Plan</h4>
-            {isPro ? (
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">{planName || "Pro Plan Active"}</span>
-                <Crown className="h-4 w-4 text-accent" />
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3 mt-2">
+          {requirePayment && (
+            <div className="border-t border-border pt-4">
+              <h4 className="font-medium leading-none text-sm mb-3">Current Plan</h4>
+              {isPro ? (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Free Plan</span>
+                  <span className="text-sm font-medium text-foreground">{planName || "Pro Plan Active"}</span>
+                  <Crown className="h-4 w-4 text-accent" />
                 </div>
-                <Link href="/pricing" className="w-full text-foreground hover:text-foreground">
-                  <Button size="sm" className="w-full bg-accent text-accent-foreground hover:bg-accent/90 border-transparent transition-all">
-                    Upgrade to Pro <Crown className="ml-2 h-3.5 w-3.5" />
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
+              ) : (
+                <div className="flex flex-col gap-3 mt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Free Plan</span>
+                  </div>
+                  <Link href="/pricing" className="w-full text-foreground hover:text-foreground">
+                    <Button size="sm" className="w-full bg-accent text-accent-foreground hover:bg-accent/90 border-transparent transition-all">
+                      Upgrade to Pro <Crown className="ml-2 h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>
@@ -204,7 +207,7 @@ const Navbar = () => {
         </Link>
 
         <div className="hidden items-center gap-1 md:flex mr-[-120px]">
-          {navItems.filter((i) => i.path === "/pricing" ? !isPro : true).map((item) => {
+          {navItems.filter((i) => i.path === "/pricing" ? (requirePayment && !isPro) : true).map((item) => {
             const isActive = item.path === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.includes(item.path);
             return (
               <Link
@@ -232,7 +235,7 @@ const Navbar = () => {
        
           {user ? (
             <>
-              {isPro && (
+              {requirePayment && isPro && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-accent-foreground bg-accent rounded-full shadow-sm whitespace-nowrap">
                   <Crown className="h-3.5 w-3.5" />
                   PRO
@@ -287,13 +290,13 @@ const Navbar = () => {
           ))}
           {user ? (
             <>
-              {isPro && (
+              {requirePayment && isPro && (
                 <div className="mt-4 flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-accent-foreground bg-accent rounded-lg shadow-sm justify-center">
                   <Crown className="h-4 w-4" />
                   {planName?.toUpperCase() || "PRO PLAN ACTIVE"}
                 </div>
               )}
-              <div className={`${isPro ? 'mt-2' : 'mt-4'} mb-2 flex flex-col gap-2`}>
+              <div className={`${(requirePayment && isPro) ? 'mt-2' : 'mt-4'} mb-2 flex flex-col gap-2`}>
                 {renderUserPopover(true)}
                 <Button variant="ghost" size="sm" type="button" onClick={handleSignOut} className="w-full justify-start text-muted-foreground hover:text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />

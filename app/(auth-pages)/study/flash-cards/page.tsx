@@ -84,6 +84,18 @@ export default function FlashcardsDashboard() {
     }
   };
 
+  const handleDeleteFolder = async (folderId: string) => {
+    if (!confirm("Are you sure you want to delete this folder?")) return;
+    try {
+      const { error } = await supabase.from("flashcard_folders").delete().eq("id", folderId);
+      if (error) throw error;
+      setFolders((prev) => prev.filter(f => f.id !== folderId));
+      if (cacheFolders) cacheFolders = cacheFolders.filter(f => f.id !== folderId);
+    } catch (err: any) {
+      console.error("Error deleting folder:", err);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -191,6 +203,10 @@ export default function FlashcardsDashboard() {
                     setCount={f.setCount}
                     index={i}
                     onClick={() => router.push(`/study/flash-cards/folder/${f.id}`)}
+                    onDelete={(e) => {
+                      e.stopPropagation();
+                      handleDeleteFolder(f.id);
+                    }}
                   />
                 ))}
               </div>

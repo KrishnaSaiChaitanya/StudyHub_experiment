@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Rocket, Bell, ArrowRight, Sparkles, Clock, BarChart, Users } from "lucide-react";
+import { Rocket, Bell, ArrowRight, Sparkles, Clock, BarChart, Users, Gift, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -92,16 +92,16 @@ const ComingSoon = () => {
         </motion.p>
 
         {/* Perks */}
-        <motion.div
+         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.45 }}
           className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4"
         >
           {[
-            { icon: BarChart, title: "Progress Tracking", desc: "Visualize your performance progress" },
-            { icon: Bell, title: "Early Updates", desc: "Be the first to know" },
-            { icon: Users, title: "Group Study", desc: "Join groups and discuss with your peers" },
+            { icon: Gift, title: "Free Pro Access", desc: "Get full Pro access completely free till the end of August" },
+            { icon: BarChart3, title: "Progress Dashboard", desc: "Track your study hours, mock scores, and daily streaks in one place" },
+            { icon: Users, title: "Community", desc: "Learn together with peers through forums, group study, and discussions" },
           ].map((perk, i) => (
             <div
               key={i}
@@ -152,6 +152,9 @@ const ComingSoon = () => {
           {/* <p className="text-xs text-primary-foreground/40 mt-3">
             Join the waitlist to get <span className="text-accent font-medium">Pro access free for 1 month</span> when we launch.
           </p> */}
+           <p className="text-xs text-primary-foreground/40 mt-3">
+            Join the waitlist to get <span className="text-accent font-medium">free Pro access till the end of August</span> when we launch.
+          </p>
         </motion.div>
       </div>
     </div>

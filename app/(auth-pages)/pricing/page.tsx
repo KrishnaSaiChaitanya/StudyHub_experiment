@@ -86,6 +86,12 @@ const Pricing = () => {
   const supabase = createClient();
   const { checkSubscription, planName, expiryDate } = useSubscription();
 
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_REQUIRE_PAYMENT !== 'true') {
+      router.push("/dashboard");
+    }
+  }, [router]);
+
   const loadRazorpay = () => {
     return new Promise((resolve) => {
       if (typeof window !== "undefined" && (window as any).Razorpay) {
