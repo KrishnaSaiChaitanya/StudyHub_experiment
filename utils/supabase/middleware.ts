@@ -35,6 +35,26 @@ export const updateSession = async (request: NextRequest) => {
       },
     );
 
+    // Handle OAuth code exchange: if a `code` param is present, exchange it for a session
+    // BEFORE calling getUser(). This ensures the PKCE verifier from cookies is used properly.
+    const code = request.nextUrl.searchParams.get("code");
+    if (code) {
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (!exchangeError) {
+        // Code exchanged successfully — redirect to the intended destination
+        // IMPORTANT: Copy cookies from `response` to the redirect, otherwise
+        // the session cookies set by exchangeCodeForSession are lost
+        const redirectTo = request.nextUrl.searchParams.get("redirect_to") || "/dashboard";
+        const redirectResponse = NextResponse.redirect(new URL(redirectTo, request.url));
+        response.cookies.getAll().forEach(cookie => {
+          redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+        });
+        return redirectResponse;
+      }
+      // If exchange fails, fall through to normal flow
+      console.error("OAuth code exchange error:", exchangeError.message);
+    }
+
     // This will refresh session if expired - required for Server Components
     // https://supabase.com/docs/guides/auth/server-side/nextjs
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -46,7 +66,6 @@ export const updateSession = async (request: NextRequest) => {
       .filter(email => email.length > 0);
 
     const isUserAdmin = user?.email && adminEmails.includes(user.email.toLowerCase());
-    console.log("isUserAdmin", isUserAdmin, user?.email);
 
     // Protected routes
     const protectedPaths = ["/protected", "/study", "/practice", "/faculty", "/community", "/dashboard", "/admin"]
