@@ -99,7 +99,7 @@ const ComingSoon = () => {
           className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4"
         >
           {[
-            { icon: Gift, title: "Free Pro Access", desc: "Get full Pro access completely free till the end of August" },
+            { icon: Gift, title: "Free Pro Access", desc: "Get full Pro access completely free till the end of November" },
             { icon: BarChart3, title: "Progress Dashboard", desc: "Track your study hours, mock scores, and daily streaks in one place" },
             { icon: Users, title: "Community", desc: "Learn together with peers through forums, group study, and discussions" },
           ].map((perk, i) => (
@@ -145,7 +145,7 @@ const ComingSoon = () => {
               <Rocket className="h-6 w-6 text-accent" />
               <div className="text-left">
                 <p className="text-sm font-semibold text-primary-foreground">You're on the list!</p>
-                <p className="text-xs text-primary-foreground/60">We'll send you updates and your free Pro access code at launch.</p>
+                <p className="text-xs text-primary-foreground/60">We'll notify you when we launch!!</p>
               </div>
             </motion.div>
           )}
