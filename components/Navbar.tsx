@@ -352,7 +352,7 @@ const Navbar = () => {
 
         <div className="flex items-center gap-2 md:hidden">
           {/* <StudyTimerPill /> */}
-          {isInstallable && (
+          {/* {isInstallable && (
             <Button
               variant="outline"
               size="sm"
@@ -362,7 +362,7 @@ const Navbar = () => {
               <Download className="h-3.5 w-3.5" />
               Install
             </Button>
-          )}
+          )} */}
           <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
